@@ -1,1 +1,1 @@
-# yamlu - yet another Machine Learning utility library
+# yamlu - yet another machine learning utility library

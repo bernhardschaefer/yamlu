@@ -1,0 +1,6 @@
+pandas
+seaborn
+# needed for sklearn.metrics.classification_report output_dict kwarg
+scikit-learn>=0.20
+numpy
+matplotlib

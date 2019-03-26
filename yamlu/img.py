@@ -25,5 +25,5 @@ def plot_imgs(imgs: np.array, ncols=5, figsize=(20, 8), cmap="gray", axis_off=Tr
         if axis_off:
             ax.axis('off')
         ax.imshow(img, cmap=cmap)
-        
+
     fig.tight_layout()

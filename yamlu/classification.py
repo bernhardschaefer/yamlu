@@ -1,10 +1,12 @@
+import warnings
+from typing import List
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import LabelEncoder
+import seaborn as sns
 import sklearn.metrics
-import warnings
-from typing import List
+from sklearn.preprocessing import LabelEncoder
 
 
 def cl_report(y_true, y_pred, classes: List[str], digits=3, only_avg=False) -> pd.DataFrame:
@@ -39,7 +41,7 @@ def plot_roc_auc(y_true, y_score):
     plt.show()
 
 
-def plot_cm(y_true, y_pred, classes, figsize=(10, 10)):
+def plot_cm(y_true, y_pred, classes, figsize=(6, 6)):
     cm = sklearn.metrics.confusion_matrix(y_true, y_pred)
     plot_confusion_matrix(cm, classes, figsize=figsize)
 
@@ -48,7 +50,7 @@ def plot_confusion_matrix(cm, classes,
                           normalize=False,
                           title='Confusion matrix',
                           cmap=plt.cm.Blues,
-                          figsize=(10, 10)):
+                          figsize=(6, 6)):
     """
     This function prints and plots the confusion matrix.
     Normalization can be applied by setting `normalize=True`.
@@ -56,27 +58,28 @@ def plot_confusion_matrix(cm, classes,
     if normalize:
         cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
 
-    plt.figure(figsize=figsize)
-    plt.imshow(cm, interpolation='nearest', cmap=cmap)
-    plt.title(title)
-    plt.colorbar()
-    tick_marks = np.arange(len(classes))
-    plt.xticks(tick_marks, classes, rotation=90, ha="center")
-    plt.yticks(tick_marks, classes)
+    with sns.axes_style("white"):
+        plt.figure(figsize=figsize)
+        plt.imshow(cm, interpolation='nearest', cmap=cmap)
+        plt.title(title)
+        plt.colorbar()
+        tick_marks = np.arange(len(classes))
+        plt.xticks(tick_marks, classes, rotation=90, ha="center")
+        plt.yticks(tick_marks, classes)
 
-    fmt = '.2f' if normalize else 'd'
-    thresh = cm.max() / 2.
-    import itertools
-    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
-        cnt = cm[i, j]
-        plt.text(j, i, format(cnt, fmt),
-                 alpha=1 if cnt > 0 else .3,
-                 horizontalalignment="center",
-                 color="white" if cnt > thresh else "black")
+        fmt = '.2f' if normalize else 'd'
+        thresh = cm.max() / 2.
+        import itertools
+        for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+            cnt = cm[i, j]
+            plt.text(j, i, format(cnt, fmt),
+                     alpha=1 if cnt > 0 else .3,
+                     horizontalalignment="center",
+                     color="white" if cnt > thresh else "black")
 
-    plt.ylabel('True label')
-    plt.xlabel('Predicted label')
-    plt.tight_layout()
+        plt.ylabel('True label')
+        plt.xlabel('Predicted label')
+        plt.tight_layout()
 
 
 def confusion_classes(cm, le):

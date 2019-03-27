@@ -15,8 +15,7 @@ def regression_metrics_npy(y_test, y_pred, col_names):
 def regression_metrics(y_test, y_pred, name=""):
     if y_test.ndim > 1 and y_test.shape[1] > 1:  # multiple output scenario
         # recursively call function for each column and combine results
-        return pd.concat(
-            regression_metrics(y_test[col], y_pred[col], name="_".join([col, name])) for col in y_test.columns)
+        return pd.concat(regression_metrics(y_test[col], y_pred[col], name=col) for col in y_test.columns)
 
     # extract values if necessary
     if type(y_test) == pd.DataFrame and y_test.shape[1] == 1:
@@ -40,6 +39,4 @@ def regression_metrics(y_test, y_pred, name=""):
     mae = np.mean(res_df.ae)
     mape = np.mean(res_df.ape)
     median_ae = np.median(res_df.se)
-    logger.info(
-        f"{name} metric: mse={mse:.3f}, mae={mae:.3f}, mape={mape:.3f}%, median_ae={median_ae:.3f}")
-    return pd.Series(dict(mse=mse, mae=mae, mape=mape), name=name).to_frame().T
+    return pd.Series(dict(mse=mse, mae=mae, mape=mape, median_ae=median_ae), name=name).to_frame().T

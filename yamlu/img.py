@@ -79,9 +79,8 @@ class AnnotatedImage:
     annotations: List[Annotation]
     img: Optional[np.ndarray] = field(repr=False)
 
-    def plot(self, figsize, with_bb=True):
-        fig, ax = plt.subplots(figsize=figsize)
-        ax.imshow(self.img)
+    def plot(self, figsize=None, with_bb=True):
+        fig, ax = plot_img(self.img, cmap=None, figsize=figsize)
 
         if with_bb:
             plot_bb(ax, self.annotations)
@@ -116,19 +115,23 @@ def compute_colors_for_annotations(annotations, cmap='jet'):
 def plot_bb(ax, annotations: List[Annotation]):
     ann_colors = compute_colors_for_annotations(annotations)
 
+    # very rough estimate
+    fontsize = ax.figure.get_size_inches()[0]
+    lw = fontsize / 10
+
     for ann, color in zip(annotations, ann_colors):
         patch = mpatches.Rectangle(*ann.bb.xy_w_h, fill=True, facecolor=color, edgecolor=color, lw=0, alpha=.05)
         ax.add_patch(patch)
-        patch = mpatches.Rectangle(*ann.bb.xy_w_h, fill=False, facecolor="none", edgecolor=color, lw=1, alpha=.8)
+        patch = mpatches.Rectangle(*ann.bb.xy_w_h, fill=False, facecolor="none", edgecolor=color, lw=lw, alpha=.8)
         ax.add_patch(patch)
 
-        txt = ax.text(ann.bb.l, ann.bb.t, ann.category, verticalalignment='bottom', color=color, fontsize=10,
+        txt = ax.text(ann.bb.l, ann.bb.t, ann.category, verticalalignment='bottom', color=color, fontsize=fontsize,
                       alpha=.5)
         txt.set_path_effects([patheffects.Stroke(linewidth=1, foreground='BLACK'), patheffects.Normal()])
 
 
 def plot_img(img, vmin=0, vmax=255, cmap="gray", figsize=None, save_path=None):
-    height, width = img.shape
+    height, width = img.shape[:2]
 
     if not figsize:
         dpi = mpl.rcParams['figure.dpi']
@@ -142,6 +145,8 @@ def plot_img(img, vmin=0, vmax=255, cmap="gray", figsize=None, save_path=None):
 
     if save_path:
         plt.savefig(save_path, cmap=cmap)
+
+    return fig, ax
 
 
 def plot_imgs(imgs: np.array, ncols=5, figsize=(20, 8), cmap="gray", axis_off=True):

@@ -79,11 +79,11 @@ class AnnotatedImage:
     annotations: List[Annotation]
     img: Optional[np.ndarray] = field(repr=False)
 
-    def plot(self, figsize=None, with_bb=True):
+    def plot(self, figsize=None, with_bb=True, with_index=False):
         fig, ax = plot_img(self.img, cmap=None, figsize=figsize)
 
         if with_bb:
-            plot_bb(ax, self.annotations)
+            plot_anns(ax, self.annotations, with_index)
         return fig, ax
 
     def save(self, imgs_path: Path):
@@ -112,20 +112,23 @@ def compute_colors_for_annotations(annotations, cmap='jet'):
     return [scalarMap.to_rgba(c) for c in cat_ids]
 
 
-def plot_bb(ax, annotations: List[Annotation]):
+def plot_anns(ax, annotations: List[Annotation], with_index=False):
     ann_colors = compute_colors_for_annotations(annotations)
 
     # very rough estimate
     fontsize = ax.figure.get_size_inches()[0]
     lw = fontsize / 10
 
-    for ann, color in zip(annotations, ann_colors):
+    for i, ann, color in zip(range(len(annotations)), annotations, ann_colors):
         patch = mpatches.Rectangle(*ann.bb.xy_w_h, fill=True, facecolor=color, edgecolor=color, lw=0, alpha=.05)
         ax.add_patch(patch)
         patch = mpatches.Rectangle(*ann.bb.xy_w_h, fill=False, facecolor="none", edgecolor=color, lw=lw, alpha=.8)
         ax.add_patch(patch)
 
-        txt = ax.text(ann.bb.l, ann.bb.t, ann.category, verticalalignment='bottom', color=color, fontsize=fontsize,
+        text = ann.category
+        if with_index:
+            text += f" {i}"
+        txt = ax.text(ann.bb.l, ann.bb.t, text, verticalalignment='bottom', color=color, fontsize=fontsize,
                       alpha=.5)
         txt.set_path_effects([patheffects.Stroke(linewidth=1, foreground='BLACK'), patheffects.Normal()])
 

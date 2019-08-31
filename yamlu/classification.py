@@ -50,7 +50,8 @@ def plot_confusion_matrix(cm, classes,
                           normalize=False,
                           title='Confusion matrix',
                           cmap=plt.cm.Blues,
-                          figsize=(6, 6)):
+                          figsize=(6, 6),
+                          colorbar=True):
     """
     This function prints and plots the confusion matrix.
     Normalization can be applied by setting `normalize=True`.
@@ -62,7 +63,8 @@ def plot_confusion_matrix(cm, classes,
         plt.figure(figsize=figsize)
         plt.imshow(cm, interpolation='nearest', cmap=cmap)
         plt.title(title)
-        plt.colorbar()
+        if colorbar:
+            plt.colorbar()
         tick_marks = np.arange(len(classes))
         plt.xticks(tick_marks, classes, rotation=90, ha="center")
         plt.yticks(tick_marks, classes)

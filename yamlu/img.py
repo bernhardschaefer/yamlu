@@ -1,6 +1,24 @@
 import math
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import numpy as np
+
+
+def plot_img(img, vmin=0, vmax=255, cmap="gray", figsize=None, save_path=None):
+    height, width = img.shape
+
+    if not figsize:
+        dpi = mpl.rcParams['figure.dpi']
+        figsize = width / float(dpi), height / float(dpi)
+
+    fig = plt.figure(figsize=figsize)
+
+    ax = fig.add_axes([0, 0, 1, 1])
+    ax.axis('off')
+    ax.imshow(img, cmap=cmap, vmin=vmin, vmax=vmax)
+
+    if save_path:
+        plt.savefig(save_path, cmap=cmap)
 
 
 def plot_imgs(imgs: np.array, ncols=5, figsize=(20, 8), cmap="gray", axis_off=True):

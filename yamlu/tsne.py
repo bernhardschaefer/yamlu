@@ -20,7 +20,7 @@ def tsne_scatter(X, Y, perplexity=40, n_iter=400):
     palette = np.array(sns.color_palette("hls", num_classes))
 
     le = LabelEncoder()
-    y_le = le.fit_transform(y)
+    y_le = le.fit_transform(Y)
 
     # create a scatter plot.
     f = plt.figure(figsize=(8, 8))

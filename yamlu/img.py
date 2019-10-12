@@ -1,7 +1,7 @@
 import math
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import matplotlib as mpl
 import matplotlib.cm as cmx
@@ -13,11 +13,12 @@ from PIL import Image
 from matplotlib import patheffects
 
 
-@dataclass
+@dataclass(eq=True, frozen=True)
 class BoundingBox:
     """
     This Bounding Box implementation assumes the coordinates to be inclusive.
     This means that e.g. the width of the bbox is right-left+1.
+    For some background see: https://github.com/facebookresearch/Detectron/blob/master/detectron/utils/boxes.py#L23
     """
 
     # top, left, bottom, right
@@ -26,10 +27,13 @@ class BoundingBox:
     b: float
     r: float
 
-    @classmethod
-    def from_xyxy(cls, xmin, ymin, xmax, ymax):
-        """ xyxy convention is commonly x<->width and y<->height"""
-        return cls(ymin, xmin, ymax, xmax)
+    def __post_init__(self):
+        assert self.t >= 0
+        assert self.l >= 0
+        assert self.b > 0
+        assert self.r > 0
+        assert self.t < self.b
+        assert self.l < self.r
 
     @property
     def tlbr(self):
@@ -63,12 +67,22 @@ class BoundingBox:
     def bb_coco(self):
         return self.l, self.t, self.w, self.h
 
+    def is_within_bb(self, bb):
+        t, l, b, r = self.tlbr
+        return t >= bb.t and l >= bb.l and b <= bb.b and r <= bb.r
 
-@dataclass
+    def shrink(self, pad) -> "BoundingBox":
+        return BoundingBox(self.t + pad, self.l + pad, self.b - pad, self.r - pad)
+
+
+@dataclass(eq=True, frozen=True)
 class Annotation:
-    category: str
+    category: str  # class label
     bb: BoundingBox
-    text: str = field(default=None)  # only for text category
+    img: np.ndarray = field(repr=False, compare=False)  # optional img for just this annotation
+    text: str = field(default=None, compare=False)  # optional: only for text category
+    head: Tuple[int, int] = field(default=None, compare=False)  # optional: only for arrow category
+    tail: Tuple[int, int] = field(default=None, compare=False)  # optional: only for arrow category
 
 
 @dataclass
@@ -77,24 +91,35 @@ class AnnotatedImage:
     width: int
     height: int
     annotations: List[Annotation]
-    img: Optional[np.ndarray] = field(repr=False)
+    img_id: Optional[int]
+    img: np.ndarray = field(init=False, repr=False)
 
-    def plot(self, figsize=None, with_bb=True, with_index=False):
-        fig, ax = plot_img(self.img, cmap=None, figsize=figsize)
+    def __post_init__(self):
+        if not hasattr(self, "img") or self.img is None:
+            self.reload_img()
 
-        if with_bb:
-            plot_anns(ax, self.annotations, with_index)
-        return fig, ax
+    @property
+    def arrows(self):
+        return [a for a in self.annotations if a.category == 'arrow']
+
+    @property
+    def nodes(self):
+        return [a for a in self.annotations if a.category not in ['text', 'arrow']]
+
+    def reload_img(self):
+        # 255 <-> BLACK
+        img = np.full((self.height, self.width, 3), fill_value=255, dtype=np.uint8)
+        for a in self.annotations:
+            img = np.minimum(a.img, img)
+        self.img = img
+
+    def plot(self, figsize=None, with_bb=True, with_head_tail=True, with_index=False, axis_off=True):
+        plot_ann_img(self, figsize=figsize, with_bb=with_bb, with_head_tail=with_head_tail,
+                     with_index=with_index, axis_off=axis_off)
 
     def save(self, imgs_path: Path):
         img = Image.fromarray(self.img)
         img.save(imgs_path / self.filename)
-
-    def del_image_data(self):
-        """Delete img and annotation img data and only keep metadata to reduce memory usage"""
-        self.img = None
-        for ann in self.annotations:
-            ann.img = None
 
 
 def compute_colors_for_annotations(annotations, cmap='jet'):
@@ -110,6 +135,26 @@ def compute_colors_for_annotations(annotations, cmap='jet'):
     scalarMap.get_clim()
 
     return [scalarMap.to_rgba(c) for c in cat_ids]
+
+
+def plot_ann_img(ann_img: AnnotatedImage, figsize, with_bb=True, with_head_tail=True, with_index=True, axis_off=True):
+    fig = plt.figure(figsize=figsize)
+    ax: plt.Axes = fig.add_axes([0, 0, 1, 1])
+    if axis_off:
+        ax.axis('off')
+
+    ax.imshow(ann_img.img)
+
+    if with_bb:
+        plot_anns(ax, ann_img.annotations, with_index=with_index)
+
+    if with_head_tail:
+        # get heads and arrows as np arrays with shape (N,2), where N is number of arrows
+        heads_tails = list((a.head, a.tail) for a in ann_img.annotations if a.category == 'arrow')
+        if len(heads_tails) > 0:
+            heads, tails = list(map(np.array, zip(*heads_tails)))
+            ax.scatter(*heads.T, s=50, zorder=10, alpha=.8, color="green")
+            ax.scatter(*tails.T, s=50, zorder=10, alpha=.8, color="SkyBlue")
 
 
 def plot_anns(ax, annotations: List[Annotation], with_index=False):

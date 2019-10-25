@@ -28,12 +28,12 @@ class BoundingBox:
     r: float
 
     def __post_init__(self):
-        assert self.t >= 0
-        assert self.l >= 0
-        assert self.b > 0
-        assert self.r > 0
-        assert self.t < self.b
-        assert self.l < self.r
+        assert self.t >= 0, f"Invalid bouding box coordinates: {self}"
+        assert self.l >= 0, f"Invalid bouding box coordinates: {self}"
+        assert self.b > 0, f"Invalid bouding box coordinates: {self}"
+        assert self.r > 0, f"Invalid bouding box coordinates: {self}"
+        assert self.t < self.b, f"Invalid bouding box coordinates: {self}"
+        assert self.l < self.r, f"Invalid bouding box coordinates: {self}"
 
     @property
     def tlbr(self):
@@ -71,6 +71,9 @@ class BoundingBox:
         t, l, b, r = self.tlbr
         return t >= bb.t and l >= bb.l and b <= bb.b and r <= bb.r
 
+    def union(self, bb):
+        return BoundingBox(t=min(self.t, bb.t), l=min(self.l, bb.l), b=max(self.b, bb.b), r=max(self.r, bb.r))
+
     def shrink(self, pad) -> "BoundingBox":
         return BoundingBox(self.t + pad, self.l + pad, self.b - pad, self.r - pad)
 
@@ -79,10 +82,12 @@ class BoundingBox:
 class Annotation:
     category: str  # class label
     bb: BoundingBox
-    img: np.ndarray = field(repr=False, compare=False)  # optional img for just this annotation
+    img: np.ndarray = field(default=None, repr=False, compare=False)  # optional img for just this annotation
+    # TODO use extra_fields
     text: str = field(default=None, compare=False)  # optional: only for text category
     head: Tuple[int, int] = field(default=None, compare=False)  # optional: only for arrow category
     tail: Tuple[int, int] = field(default=None, compare=False)  # optional: only for arrow category
+    xml_id: str = field(default=None)
 
 
 @dataclass
@@ -91,8 +96,7 @@ class AnnotatedImage:
     width: int
     height: int
     annotations: List[Annotation]
-    img_id: Optional[int]
-    img: np.ndarray = field(init=False, repr=False)
+    img: Optional[np.ndarray] = field(default=None, repr=False)
 
     def __post_init__(self):
         if not hasattr(self, "img") or self.img is None:
@@ -150,7 +154,8 @@ def plot_ann_img(ann_img: AnnotatedImage, figsize, with_bb=True, with_head_tail=
 
     if with_head_tail:
         # get heads and arrows as np arrays with shape (N,2), where N is number of arrows
-        heads_tails = list((a.head, a.tail) for a in ann_img.annotations if a.category == 'arrow')
+        heads_tails = list(
+            (a.head, a.tail) for a in ann_img.annotations if a.category == 'arrow' and a.head is not None)
         if len(heads_tails) > 0:
             heads, tails = list(map(np.array, zip(*heads_tails)))
             ax.scatter(*heads.T, s=50, zorder=10, alpha=.8, color="green")

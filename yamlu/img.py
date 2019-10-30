@@ -202,7 +202,7 @@ def plot_img(img, vmin=0, vmax=255, cmap="gray", figsize=None, save_path=None):
     return fig, ax
 
 
-def plot_imgs(imgs: np.array, ncols=5, figsize=(20, 8), cmap="gray", axis_off=True):
+def plot_imgs(imgs: np.array, ncols=5, figsize=(20, 8), cmap="gray", axis_off=True, vmin=None, vmax=None):
     """
     :param imgs: batch of imgs with shape (batch_size, h, w) or (batch_size, h*w)
     :param ncols: number of columns
@@ -227,6 +227,6 @@ def plot_imgs(imgs: np.array, ncols=5, figsize=(20, 8), cmap="gray", axis_off=Tr
             ax = axs[i // ncols, i % ncols]
         if axis_off:
             ax.axis('off')
-        ax.imshow(img, cmap=cmap)
+        ax.imshow(img, cmap=cmap, vmin=vmin, vmax=vmax)
 
     fig.tight_layout()

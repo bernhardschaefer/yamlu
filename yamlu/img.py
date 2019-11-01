@@ -202,7 +202,7 @@ def plot_img(img, vmin=0, vmax=255, cmap="gray", figsize=None, save_path=None):
     return fig, ax
 
 
-def plot_imgs(imgs: np.array, ncols=5, figsize=(20, 8), cmap="gray", axis_off=True, vmin=None, vmax=None):
+def plot_imgs(imgs: np.ndarray, ncols=5, figsize=(20, 8), cmap="gray", axis_off=True, vmin=None, vmax=None):
     """
     :param imgs: batch of imgs with shape (batch_size, h, w) or (batch_size, h*w)
     :param ncols: number of columns

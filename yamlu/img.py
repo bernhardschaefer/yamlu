@@ -230,3 +230,9 @@ def plot_imgs(imgs: np.ndarray, ncols=5, figsize=(20, 8), cmap="gray", axis_off=
         ax.imshow(img, cmap=cmap, vmin=vmin, vmax=vmax)
 
     fig.tight_layout()
+
+
+def figsize_from_wh(img_w, img_h):
+    # What size does the figure need to be in inches to fit the image?
+    dpi = mpl.rcParams['figure.dpi']
+    return img_w / float(dpi), img_h / float(dpi)

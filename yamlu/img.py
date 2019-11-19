@@ -90,9 +90,9 @@ class BoundingBox:
     def rot90(self, img_h) -> "BoundingBox":
         return BoundingBox(
             t=self.l,
-            l=img_h - self.b,
+            l=img_h - self.b - 1,
             b=self.r,
-            r=img_h - self.t
+            r=img_h - self.t - 1
         )
 
 

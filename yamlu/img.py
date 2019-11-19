@@ -32,8 +32,8 @@ class BoundingBox:
         assert self.l >= 0, f"Invalid bouding box coordinates: {self}"
         assert self.b > 0, f"Invalid bouding box coordinates: {self}"
         assert self.r > 0, f"Invalid bouding box coordinates: {self}"
-        assert self.t < self.b, f"Invalid bouding box coordinates: {self}"
-        assert self.l < self.r, f"Invalid bouding box coordinates: {self}"
+        assert self.t <= self.b, f"Invalid bouding box coordinates: {self}"
+        assert self.l <= self.r, f"Invalid bouding box coordinates: {self}"
 
     @property
     def tlbr(self):
@@ -41,6 +41,7 @@ class BoundingBox:
 
     @property
     def w(self):
+        # bounding boxes are inclusive, which e.g. means l=10 and r=11 is 2px width
         return self.r - self.l + 1
 
     @property
@@ -77,6 +78,23 @@ class BoundingBox:
     def shrink(self, pad) -> "BoundingBox":
         return BoundingBox(self.t + pad, self.l + pad, self.b - pad, self.r - pad)
 
+    def rotate(self, angle, img_size):
+        assert angle % 90 == 0 and angle >= 0, f"Invalid angle: {angle}"
+        img_w, img_h = img_size
+        if angle == 0:
+            return self
+        else:
+            bb = self.rot90(img_h)
+            return bb.rotate(angle - 90, (img_h, img_w))
+
+    def rot90(self, img_h) -> "BoundingBox":
+        return BoundingBox(
+            t=self.l,
+            l=img_h - self.b,
+            b=self.r,
+            r=img_h - self.t
+        )
+
 
 @dataclass(eq=True, frozen=True)
 class Annotation:
@@ -85,8 +103,8 @@ class Annotation:
     img: np.ndarray = field(default=None, repr=False, compare=False)  # optional img for just this annotation
     # TODO use extra_fields
     text: str = field(default=None, compare=False)  # optional: only for text category
-    head: Tuple[int, int] = field(default=None, compare=False)  # optional: only for arrow category
-    tail: Tuple[int, int] = field(default=None, compare=False)  # optional: only for arrow category
+    head: Tuple[float, float] = field(default=None, compare=False)  # optional: only for arrow category
+    tail: Tuple[float, float] = field(default=None, compare=False)  # optional: only for arrow category
     xml_id: str = field(default=None)
 
 

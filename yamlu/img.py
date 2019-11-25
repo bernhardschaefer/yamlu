@@ -1,7 +1,7 @@
 import math
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 import matplotlib as mpl
 import matplotlib.cm as cmx
@@ -28,12 +28,12 @@ class BoundingBox:
     r: float
 
     def __post_init__(self):
-        assert self.t >= 0, f"Invalid bouding box coordinates: {self}"
-        assert self.l >= 0, f"Invalid bouding box coordinates: {self}"
-        assert self.b > 0, f"Invalid bouding box coordinates: {self}"
-        assert self.r > 0, f"Invalid bouding box coordinates: {self}"
-        assert self.t <= self.b, f"Invalid bouding box coordinates: {self}"
-        assert self.l <= self.r, f"Invalid bouding box coordinates: {self}"
+        assert self.t >= 0, f"Invalid bounding box coordinates: {self}"
+        assert self.l >= 0, f"Invalid bounding box coordinates: {self}"
+        assert self.b > 0, f"Invalid bounding box coordinates: {self}"
+        assert self.r > 0, f"Invalid bounding box coordinates: {self}"
+        assert self.t <= self.b, f"Invalid bounding box coordinates: {self}"
+        assert self.l <= self.r, f"Invalid bounding box coordinates: {self}"
 
     @property
     def tlbr(self):
@@ -202,11 +202,8 @@ def plot_anns(ax, annotations: List[Annotation], with_index=False):
 
 
 def plot_img(img, vmin=0, vmax=255, cmap="gray", figsize=None, save_path=None):
-    height, width = img.shape[:2]
-
     if not figsize:
-        dpi = mpl.rcParams['figure.dpi']
-        figsize = width / float(dpi), height / float(dpi)
+        figsize = figsize_from_img(img)
 
     fig = plt.figure(figsize=figsize)
 
@@ -248,6 +245,16 @@ def plot_imgs(imgs: np.ndarray, ncols=5, figsize=(20, 8), cmap="gray", axis_off=
         ax.imshow(img, cmap=cmap, vmin=vmin, vmax=vmax)
 
     fig.tight_layout()
+
+
+def figsize_from_img(img: Union[Image.Image, np.ndarray]):
+    if isinstance(img, np.ndarray):
+        h, w = img.shape[:2]
+        return figsize_from_wh(w, h)
+    elif isinstance(img, Image.Image):
+        return figsize_from_wh(*img.size)
+    else:
+        raise ValueError(f"Unknown image type: {type(img)}")
 
 
 def figsize_from_wh(img_w, img_h):

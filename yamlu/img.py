@@ -217,21 +217,26 @@ def plot_img(img, vmin=0, vmax=255, cmap="gray", figsize=None, save_path=None):
     return fig, ax
 
 
-def plot_imgs(imgs: np.ndarray, ncols=5, figsize=(20, 8), cmap="gray", axis_off=True, vmin=None, vmax=None):
+def plot_imgs(imgs: Union[np.ndarray, List[np.ndarray]], ncols=4, img_size=(5, 5), cmap="gray", axis_off=True,
+              vmin=None, vmax=None):
     """
     :param imgs: batch of imgs with shape (batch_size, h, w) or (batch_size, h*w)
     :param ncols: number of columns
-    :param figsize: matplotlib figsize
+    :param img_size: matplotlib size to use for each image
     :param cmap: matplotlib colormap
     :param axis_off: plot axis or not
     """
     n_imgs = len(imgs)
     assert n_imgs < 100
 
-    if imgs.ndim == 2:
+    if isinstance(imgs, np.ndarray) and imgs.ndim == 2:
         s = int(math.sqrt(imgs.shape[-1]))
         assert s ** 2 == imgs.shape[-1], "Second dimension does not have equal width & height"
         imgs = imgs.reshape(-1, s, s)
+
+    nrows = math.ceil(n_imgs / ncols)
+    img_w, img_h = img_size
+    figsize = img_w * ncols, img_h * nrows
 
     nrows = math.ceil(n_imgs / ncols)
     fig, axs = plt.subplots(nrows, ncols, figsize=figsize)
@@ -245,6 +250,11 @@ def plot_imgs(imgs: np.ndarray, ncols=5, figsize=(20, 8), cmap="gray", axis_off=
         ax.imshow(img, cmap=cmap, vmin=vmin, vmax=vmax)
 
     fig.tight_layout()
+
+
+def plot_img_paths(img_paths: Union[List[Path], List[str]], ncols=4, img_size=(5, 5)):
+    imgs = [np.asarray(Image.open(p)) for p in img_paths]
+    return plot_imgs(imgs, ncols=ncols, img_size=img_size)
 
 
 def figsize_from_img(img: Union[Image.Image, np.ndarray]):

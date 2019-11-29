@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
 from matplotlib import patheffects
+from tqdm import tqdm
 
 
 @dataclass(eq=True, frozen=True)
@@ -240,16 +241,17 @@ def plot_imgs(imgs: Union[np.ndarray, List[np.ndarray]], ncols=4, img_size=(5, 5
 
     nrows = math.ceil(n_imgs / ncols)
     fig, axs = plt.subplots(nrows, ncols, figsize=figsize)
-    for i, img in enumerate(imgs):
+    for i, img in enumerate(tqdm(imgs)):
         if nrows == 1:
-            ax = axs[i]
+            ax: plt.Axes = axs[i]
         else:
-            ax = axs[i // ncols, i % ncols]
+            ax: plt.Axes = axs[i // ncols, i % ncols]
         if axis_off:
             ax.axis('off')
         ax.imshow(img, cmap=cmap, vmin=vmin, vmax=vmax)
 
-    fig.tight_layout()
+    # this is quite slow:
+    # fig.tight_layout()
 
 
 def plot_img_paths(img_paths: Union[List[Path], List[str]], ncols=4, img_size=(5, 5)):

@@ -13,6 +13,8 @@ from PIL import Image
 from matplotlib import patheffects
 from tqdm import tqdm
 
+from yamlu.bb import bbs_ious
+
 
 @dataclass(eq=True, frozen=True)
 class BoundingBox:
@@ -72,6 +74,11 @@ class BoundingBox:
     def is_within_bb(self, bb):
         t, l, b, r = self.tlbr
         return t >= bb.t and l >= bb.l and b <= bb.b and r <= bb.r
+
+    def iou(self, bb):
+        bbs1 = np.array(self.tlbr).reshape(1, -1)
+        bbs2 = np.array(bb.tlbr).reshape(1, -1)
+        return bbs_ious(bbs1, bbs2).item()
 
     def union(self, bb):
         return BoundingBox(t=min(self.t, bb.t), l=min(self.l, bb.l), b=max(self.b, bb.b), r=max(self.r, bb.r))

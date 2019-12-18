@@ -33,8 +33,8 @@ class BoundingBox:
     def __post_init__(self):
         assert self.t >= 0, f"Invalid bounding box coordinates: {self}"
         assert self.l >= 0, f"Invalid bounding box coordinates: {self}"
-        assert self.b > 0, f"Invalid bounding box coordinates: {self}"
-        assert self.r > 0, f"Invalid bounding box coordinates: {self}"
+        assert self.b >= 0, f"Invalid bounding box coordinates: {self}"
+        assert self.r >= 0, f"Invalid bounding box coordinates: {self}"
         assert self.t <= self.b, f"Invalid bounding box coordinates: {self}"
         assert self.l <= self.r, f"Invalid bounding box coordinates: {self}"
 

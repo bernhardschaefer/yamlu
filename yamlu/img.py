@@ -217,7 +217,7 @@ def plot_img(img, vmin=0, vmax=255, cmap="gray", figsize=None, save_path=None):
 
     ax = fig.add_axes([0, 0, 1, 1])
     ax.axis('off')
-    ax.imshow(img, cmap=cmap, vmin=vmin, vmax=vmax)
+    ax.imshow(img, cmap=cmap, interpolation="bilinear", vmin=vmin, vmax=vmax)
 
     if save_path:
         plt.savefig(save_path, cmap=cmap)

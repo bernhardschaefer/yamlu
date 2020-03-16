@@ -1,5 +1,5 @@
 import logging
-from typing import Union
+from typing import Union, List
 
 import numpy as np
 import pandas as pd
@@ -44,7 +44,7 @@ def _regression_metrics(y_true: Union[pd.DataFrame, pd.Series, np.ndarray],
                         name: str = "") -> pd.DataFrame:
     if y_true.ndim > 1 and y_true.shape[1] > 1:  # multiple output scenario
         # recursively call function for each column and combine results
-        return pd.concat(regression_metrics(y_true[col], y_pred[col], name=col) for col in y_true.columns)
+        return pd.concat(_regression_metrics(y_true[col], y_pred[col], name=col) for col in y_true.columns)
 
     # extract values if necessary
     if isinstance(y_true, pd.DataFrame) and y_true.shape[1] == 1:

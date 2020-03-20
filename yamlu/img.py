@@ -209,15 +209,16 @@ def plot_anns(ax, annotations: List[Annotation], with_index=False):
         txt.set_path_effects([patheffects.Stroke(linewidth=1, foreground='BLACK'), patheffects.Normal()])
 
 
-def plot_img(img, vmin=0, vmax=255, cmap="gray", figsize=None, save_path=None):
+def plot_img(img, cmap="gray", interpolation="bilinear", alpha=None, vmin=0, vmax=255, axis_opt="off",
+             extent=None, figsize=None, save_path=None) -> Tuple[plt.Figure, plt.Axes]:
     if not figsize:
         figsize = figsize_from_img(img)
 
     fig = plt.figure(figsize=figsize)
 
     ax = fig.add_axes([0, 0, 1, 1])
-    ax.axis('off')
-    ax.imshow(img, cmap=cmap, interpolation="bilinear", vmin=vmin, vmax=vmax)
+    ax.axis(axis_opt)
+    ax.imshow(img, cmap=cmap, interpolation=interpolation, alpha=alpha, vmin=vmin, vmax=vmax, extent=extent)
 
     if save_path:
         plt.savefig(save_path, cmap=cmap)

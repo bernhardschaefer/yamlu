@@ -9,9 +9,9 @@ import matplotlib.colors as colors
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
+import torch
 from PIL import Image
 from matplotlib import patheffects
-from tqdm import tqdm
 
 from yamlu.bb import bbs_ious
 
@@ -227,9 +227,9 @@ def plot_img(img, cmap="gray", interpolation="bilinear", alpha=None, vmin=0, vma
 
 
 def plot_imgs(imgs: Union[np.ndarray, List[np.ndarray]], ncols=4, img_size=(5, 5), cmap="gray", axis_off=True,
-              vmin=None, vmax=None):
+              vmin=None, vmax=None, titles: List[str] = None):
     """
-    :param imgs: batch of imgs with shape (batch_size, h, w) or (batch_size, h*w)
+    :param imgs: batch of imgs with shape (batch_size, h, w) or (batch_size, h, w, 3)
     :param ncols: number of columns
     :param img_size: matplotlib size to use for each image
     :param cmap: matplotlib colormap
@@ -238,10 +238,11 @@ def plot_imgs(imgs: Union[np.ndarray, List[np.ndarray]], ncols=4, img_size=(5, 5
     n_imgs = len(imgs)
     assert n_imgs < 100
 
-    if isinstance(imgs, np.ndarray) and imgs.ndim == 2:
-        s = int(math.sqrt(imgs.shape[-1]))
-        assert s ** 2 == imgs.shape[-1], "Second dimension does not have equal width & height"
-        imgs = imgs.reshape(-1, s, s)
+    if titles is not None:
+        assert len(imgs) == len(titles), f"{len(imgs)} != {len(titles)}"
+
+    if isinstance(imgs, torch.Tensor):
+        imgs = imgs.detach().cpu().numpy()
 
     nrows = math.ceil(n_imgs / ncols)
     img_w, img_h = img_size
@@ -249,7 +250,7 @@ def plot_imgs(imgs: Union[np.ndarray, List[np.ndarray]], ncols=4, img_size=(5, 5
 
     nrows = math.ceil(n_imgs / ncols)
     fig, axs = plt.subplots(nrows, ncols, figsize=figsize)
-    for i, img in enumerate(tqdm(imgs)):
+    for i, img in enumerate(imgs):
         if nrows == 1:
             ax: plt.Axes = axs[i]
         else:
@@ -257,6 +258,8 @@ def plot_imgs(imgs: Union[np.ndarray, List[np.ndarray]], ncols=4, img_size=(5, 5
         if axis_off:
             ax.axis('off')
         ax.imshow(img, cmap=cmap, vmin=vmin, vmax=vmax)
+        if titles is not None:
+            ax.set_title(titles[i])
 
     # this is quite slow:
     # fig.tight_layout()

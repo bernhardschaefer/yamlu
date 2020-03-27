@@ -22,11 +22,11 @@ def pickle_cache(cache_path: Path):
 
     def decorator(func):
         @functools.wraps(func)
-        def inner():
+        def inner(*args, **kwargs):
             if cache_path.is_file():
                 with cache_path.open("rb") as f:
                     return pickle.load(f)
-            res = func()
+            res = func(*args, **kwargs)
             _logger.info("Caching object type %s to %s", type(res), cache_path)
             cache_path.parent.mkdir(parents=True, exist_ok=True)
             with cache_path.open("wb") as f:

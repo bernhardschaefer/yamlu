@@ -28,6 +28,7 @@ def pickle_cache(cache_path: Path):
                     return pickle.load(f)
             res = func()
             _logger.info("Caching object type %s to %s", type(res), cache_path)
+            cache_path.parent.mkdir(parents=True, exist_ok=True)
             with cache_path.open("wb") as f:
                 pickle.dump(res, f)
             return res

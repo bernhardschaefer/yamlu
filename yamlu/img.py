@@ -209,8 +209,12 @@ def plot_anns(ax, annotations: List[Annotation], with_index=False):
         txt.set_path_effects([patheffects.Stroke(linewidth=1, foreground='BLACK'), patheffects.Normal()])
 
 
-def plot_img(img, cmap="gray", interpolation="bilinear", alpha=None, vmin=0, vmax=255, axis_opt="off",
-             extent=None, figsize=None, save_path=None) -> Tuple[plt.Figure, plt.Axes]:
+def plot_img(img: Union[np.ndarray, Image.Image], cmap="gray", interpolation="bilinear", alpha=None, vmin=0, vmax=255,
+             axis_opt="off", extent=None, figsize=None, save_path=None) -> Tuple[plt.Figure, plt.Axes]:
+    if isinstance(img, Image.Image):
+        # noinspection PyTypeChecker
+        img = np.asarray(img)
+
     if not figsize:
         figsize = figsize_from_img(img)
 
@@ -267,7 +271,7 @@ def plot_imgs(imgs: Union[np.ndarray, List[np.ndarray]], ncols=4, img_size=(5, 5
 
 def plot_img_paths(img_paths: Union[List[Path], List[str]], ncols=4, img_size=(5, 5)):
     imgs = [np.asarray(Image.open(p)) for p in img_paths]
-    return plot_imgs(imgs, ncols=ncols, img_size=img_size)
+    return plot_imgs(imgs, ncols=ncols, img_size=img_size, titles=[p.name for p in img_paths])
 
 
 def figsize_from_img(img: Union[Image.Image, np.ndarray]):

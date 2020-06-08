@@ -12,7 +12,6 @@ import numpy as np
 import torch
 from PIL import Image
 from matplotlib import patheffects
-
 from yamlu.bb import bbs_ious
 
 
@@ -168,12 +167,7 @@ def compute_colors_for_annotations(annotations, cmap='jet'):
 
 
 def plot_ann_img(ann_img: AnnotatedImage, figsize, with_bb=True, with_head_tail=True, with_index=True, axis_off=True):
-    fig = plt.figure(figsize=figsize)
-    ax: plt.Axes = fig.add_axes([0, 0, 1, 1])
-    if axis_off:
-        ax.axis('off')
-
-    ax.imshow(ann_img.img)
+    plot_img(ann_img.img, figsize)
 
     if with_bb:
         plot_anns(ax, ann_img.annotations, with_index=with_index)

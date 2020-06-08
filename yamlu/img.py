@@ -143,9 +143,9 @@ class AnnotatedImage:
             img = np.minimum(a.img, img)
         self.img = img
 
-    def plot(self, figsize=None, with_bb=True, with_head_tail=True, with_index=False, axis_off=True):
+    def plot(self, figsize=None, with_bb=True, with_head_tail=True, with_index=False, axis_opt="off"):
         plot_ann_img(self, figsize=figsize, with_bb=with_bb, with_head_tail=with_head_tail,
-                     with_index=with_index, axis_off=axis_off)
+                     with_index=with_index, axis_opt=axis_opt)
 
     def save(self, imgs_path: Path):
         img = Image.fromarray(self.img)

@@ -14,4 +14,4 @@ repos:
   - id: requirements-txt-fixer
   - id: mixed-line-ending
   - id: flake8
-    args: ['--max-line-length=120']
+    args: ['--max-line-length=120', '--ignore=E741']

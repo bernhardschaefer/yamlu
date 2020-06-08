@@ -168,7 +168,7 @@ def compute_colors_for_annotations(annotations, cmap='jet'):
 
 
 def plot_ann_img(ann_img: AnnotatedImage, figsize, with_bb=True, with_head_tail=True, with_index=True, axis_opt="off"):
-    fig, ax = plot_img(ann_img.img, figsize, axis_opt=axis_opt)
+    fig, ax = plot_img(ann_img.img, figsize=figsize, axis_opt=axis_opt)
 
     if with_bb:
         plot_anns(ax, ann_img.annotations, with_index=with_index)

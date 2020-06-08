@@ -3,6 +3,7 @@ import logging
 import os
 import pickle
 import random
+import sys
 from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
@@ -12,6 +13,19 @@ import numpy as np
 import torch
 
 _logger = logging.getLogger(__name__)
+
+
+# copied from maskrcnn-benchmark
+class HidePrints:
+    """Context Manager that mutes sys.stdout so that print() statements have no effect"""
+
+    def __enter__(self):
+        self._original_stdout = sys.stdout
+        sys.stdout = open(os.devnull, 'w')
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        sys.stdout.close()
+        sys.stdout = self._original_stdout
 
 
 # copied from detectron2
@@ -24,11 +38,7 @@ def seed_all_rng(seed=None):
         seed (int): if None, will use a strong random seed.
     """
     if seed is None:
-        seed = (
-                os.getpid()
-                + int(datetime.now().strftime("%S%f"))
-                + int.from_bytes(os.urandom(2), "big")
-        )
+        seed = os.getpid() + int(datetime.now().strftime("%S%f")) + int.from_bytes(os.urandom(2), "big")
         logger = logging.getLogger(__name__)
         logger.info("Using a generated random seed {}".format(seed))
     np.random.seed(seed)

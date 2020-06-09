@@ -225,14 +225,14 @@ def plot_img(img: Union[np.ndarray, Image.Image], cmap="gray", interpolation="bi
     return fig, ax
 
 
-def plot_imgs(imgs: Union[np.ndarray, List[np.ndarray]], ncols=4, img_size=(5, 5), cmap="gray", axis_off=True,
+def plot_imgs(imgs: Union[np.ndarray, List[np.ndarray]], ncols=4, img_size=(5, 5), cmap="gray", axis_opt="off",
               vmin=None, vmax=None, titles: List[str] = None):
     """
     :param imgs: batch of imgs with shape (batch_size, h, w) or (batch_size, h, w, 3)
     :param ncols: number of columns
     :param img_size: matplotlib size to use for each image
     :param cmap: matplotlib colormap
-    :param axis_off: plot axis or not
+    :param axis_opt: plot axis or not ("off"/"on")
     """
     n_imgs = len(imgs)
     assert n_imgs < 100
@@ -250,12 +250,11 @@ def plot_imgs(imgs: Union[np.ndarray, List[np.ndarray]], ncols=4, img_size=(5, 5
     nrows = math.ceil(n_imgs / ncols)
     fig, axs = plt.subplots(nrows, ncols, figsize=figsize)
     for i, img in enumerate(imgs):
-        if nrows == 1:
+        if nrows == 1 or ncols == 1:
             ax: plt.Axes = axs[i]
         else:
             ax: plt.Axes = axs[i // ncols, i % ncols]
-        if axis_off:
-            ax.axis('off')
+        ax.axis(axis_opt)
         ax.imshow(img, cmap=cmap, vmin=vmin, vmax=vmax)
         if titles is not None:
             ax.set_title(titles[i])

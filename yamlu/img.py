@@ -204,11 +204,14 @@ def plot_anns(ax, annotations: List[Annotation], with_index=False):
         txt.set_path_effects([patheffects.Stroke(linewidth=1, foreground='BLACK'), patheffects.Normal()])
 
 
-def plot_img(img: Union[np.ndarray, Image.Image], cmap="gray", interpolation="bilinear", alpha=None, vmin=0, vmax=255,
-             axis_opt="off", extent=None, figsize=None, save_path=None) -> Tuple[plt.Figure, plt.Axes]:
+def plot_img(
+        img: Union[np.ndarray, Image.Image, torch.Tensor], cmap="gray", interpolation="bilinear", alpha=None,
+        vmin=None, vmax=None, axis_opt="off", extent=None, figsize=None, save_path=None) -> Tuple[plt.Figure, plt.Axes]:
     if isinstance(img, Image.Image):
         # noinspection PyTypeChecker
         img = np.asarray(img)
+    elif isinstance(img, torch.Tensor):
+        img = img.cpu().numpy()
 
     if not figsize:
         figsize = figsize_from_img(img)
@@ -225,8 +228,8 @@ def plot_img(img: Union[np.ndarray, Image.Image], cmap="gray", interpolation="bi
     return fig, ax
 
 
-def plot_imgs(imgs: Union[np.ndarray, List[np.ndarray]], ncols=4, img_size=(5, 5), cmap="gray", axis_opt="off",
-              vmin=None, vmax=None, titles: List[str] = None):
+def plot_imgs(imgs: Union[np.ndarray, List[np.ndarray], torch.Tensor], ncols=4, img_size=(5, 5), cmap="gray",
+              axis_opt="off", vmin=None, vmax=None, titles: List[str] = None):
     """
     :param imgs: batch of imgs with shape (batch_size, h, w) or (batch_size, h, w, 3)
     :param ncols: number of columns

@@ -7,6 +7,10 @@ from torch import nn
 from torch.utils.data import DataLoader
 
 
+def count_parameters(model: nn.Module):
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+
 def score(model: nn.Module, dl: DataLoader, with_loss=True):
     model.eval()
 

@@ -267,8 +267,41 @@ def plot_imgs(imgs: Union[np.ndarray, List[np.ndarray], torch.Tensor], ncols=4, 
 
 
 def plot_img_paths(img_paths: Union[List[Path], List[str]], ncols=4, img_size=(5, 5)):
-    imgs = [np.asarray(Image.open(p)) for p in img_paths]
+    imgs = [np.asarray(read_img(p)) for p in img_paths]
     return plot_imgs(imgs, ncols=ncols, img_size=img_size, titles=[Path(p).name for p in img_paths])
+
+
+def read_img(img_path: Union[Path, str]):
+    img = Image.open(img_path)
+    return exif_transpose(img)
+
+
+# copied from detectron2
+def exif_transpose(image):
+    """
+    If an image has an EXIF Orientation tag, return a new image that is
+    transposed accordingly. Otherwise, return a copy of the image.
+
+    :param image: The image to transpose.
+    :return: An image.
+    """
+    exif = image.getexif()
+    orientation = exif.get(0x0112)
+    method = {
+        2: Image.FLIP_LEFT_RIGHT,
+        3: Image.ROTATE_180,
+        4: Image.FLIP_TOP_BOTTOM,
+        5: Image.TRANSPOSE,
+        6: Image.ROTATE_270,
+        7: Image.TRANSVERSE,
+        8: Image.ROTATE_90,
+    }.get(orientation)
+    if method is not None:
+        transposed_image = image.transpose(method)
+        del exif[0x0112]
+        transposed_image.info["exif"] = exif.tobytes()
+        return transposed_image
+    return image.copy()
 
 
 def figsize_from_img(img: Union[Image.Image, np.ndarray]):

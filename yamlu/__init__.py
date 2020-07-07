@@ -1,4 +1,3 @@
-from yamlu.img import plot_img, plot_imgs, plot_img_paths, plot_ann_img, plot_anns
-from yamlu.pytorch import count_parameters
+from yamlu.img import read_img, plot_img, plot_imgs, plot_img_paths, plot_ann_img, plot_anns
 
-__all__ = ["plot_img", "plot_imgs", "plot_img_paths", "plot_ann_img", "plot_anns", "count_parameters"]
+__all__ = ["read_img", "plot_img", "plot_imgs", "plot_img_paths", "plot_ann_img", "plot_anns"]

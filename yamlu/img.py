@@ -167,8 +167,10 @@ def compute_colors_for_annotations(annotations, cmap='jet'):
     return [scalarMap.to_rgba(c) for c in cat_ids]
 
 
-def plot_ann_img(ann_img: AnnotatedImage, figsize, with_bb=True, with_head_tail=True, with_index=True, axis_opt="off"):
-    fig, ax = plot_img(ann_img.img, figsize=figsize, axis_opt=axis_opt)
+def plot_ann_img(ann_img: AnnotatedImage, figsize, with_bb=True, with_head_tail=True, with_index=True, axis_opt="off",
+                 **imshow_kwargs):
+    plot_img(ann_img.img, figsize=figsize, axis_opt=axis_opt, **imshow_kwargs)
+    ax = plt.gca()
 
     if with_bb:
         plot_anns(ax, ann_img.annotations, with_index=with_index)
@@ -204,13 +206,9 @@ def plot_anns(ax, annotations: List[Annotation], with_index=False):
         txt.set_path_effects([patheffects.Stroke(linewidth=1, foreground='BLACK'), patheffects.Normal()])
 
 
-def plot_img(
-        img: Union[np.ndarray, Image.Image, torch.Tensor], cmap="gray", interpolation="bilinear", alpha=None,
-        vmin=None, vmax=None, axis_opt="off", extent=None, figsize=None, save_path=None) -> Tuple[plt.Figure, plt.Axes]:
-    if isinstance(img, Image.Image):
-        # noinspection PyTypeChecker
-        img = np.asarray(img)
-    elif isinstance(img, torch.Tensor):
+def plot_img(img: Union[np.ndarray, Image.Image, torch.Tensor], cmap="gray", axis_opt="off", figsize=None,
+             save_path=None, **imshow_kwargs):
+    if isinstance(img, torch.Tensor):
         img = img.cpu().numpy()
 
     if not figsize:
@@ -220,25 +218,24 @@ def plot_img(
 
     ax = fig.add_axes([0, 0, 1, 1])
     ax.axis(axis_opt)
-    ax.imshow(img, cmap=cmap, interpolation=interpolation, alpha=alpha, vmin=vmin, vmax=vmax, extent=extent)
+    ax.imshow(np.asarray(img), cmap=cmap, **imshow_kwargs)
 
     if save_path:
         plt.savefig(save_path, cmap=cmap)
 
-    return fig, ax
 
-
-def plot_imgs(imgs: Union[np.ndarray, List[np.ndarray], torch.Tensor], ncols=4, img_size=(5, 5), cmap="gray",
-              axis_opt="off", vmin=None, vmax=None, titles: List[str] = None):
+def plot_imgs(imgs: Union[np.ndarray, List[np.ndarray], List[Image.Image], torch.Tensor], ncols=4, img_size=(5, 5),
+              cmap="gray", axis_opt="off", titles: List[str] = None, **imshow_kwargs):
     """
     :param imgs: batch of imgs with shape (batch_size, h, w) or (batch_size, h, w, 3)
     :param ncols: number of columns
     :param img_size: matplotlib size to use for each image
     :param cmap: matplotlib colormap
     :param axis_opt: plot axis or not ("off"/"on")
+    :param titles: axis titles
     """
     n_imgs = len(imgs)
-    assert n_imgs < 100
+    assert 0 < n_imgs < 100
 
     if titles is not None:
         assert len(imgs) == len(titles), f"{len(imgs)} != {len(titles)}"
@@ -258,7 +255,7 @@ def plot_imgs(imgs: Union[np.ndarray, List[np.ndarray], torch.Tensor], ncols=4, 
         else:
             ax: plt.Axes = axs[i // ncols, i % ncols]
         ax.axis(axis_opt)
-        ax.imshow(img, cmap=cmap, vmin=vmin, vmax=vmax)
+        ax.imshow(np.asarray(img), cmap=cmap, **imshow_kwargs)
         if titles is not None:
             ax.set_title(titles[i])
 
@@ -267,8 +264,8 @@ def plot_imgs(imgs: Union[np.ndarray, List[np.ndarray], torch.Tensor], ncols=4, 
 
 
 def plot_img_paths(img_paths: Union[List[Path], List[str]], ncols=4, img_size=(5, 5)):
-    imgs = [np.asarray(read_img(p)) for p in img_paths]
-    return plot_imgs(imgs, ncols=ncols, img_size=img_size, titles=[Path(p).name for p in img_paths])
+    imgs = [read_img(p) for p in img_paths]
+    plot_imgs(imgs, ncols=ncols, img_size=img_size, titles=[Path(p).name for p in img_paths])
 
 
 def read_img(img_path: Union[Path, str]):

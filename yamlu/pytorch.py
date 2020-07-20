@@ -1,10 +1,22 @@
 import warnings
+from typing import List, Union
 
+import numpy as np
 import sklearn.metrics
 import torch
 import torch.nn.functional as F
 from torch import nn
 from torch.utils.data import DataLoader
+
+
+# https://github.com/pytorch/pytorch/issues/3025#issuecomment-392601780
+# https://github.com/pytorch/pytorch/pull/26144
+def isin(element: torch.Tensor, test_elements: Union[List, np.ndarray, torch.Tensor]):
+    """see numpy isin: https://docs.scipy.org/doc/numpy/reference/generated/numpy.isin.html#numpy.isin
+    """
+    if not isinstance(test_elements, torch.Tensor):
+        test_elements = torch.tensor(test_elements, dtype=element.dtype, device=element.device)
+    return (element[..., None] == test_elements).any(-1)
 
 
 def count_parameters(model: nn.Module):

@@ -224,8 +224,8 @@ def plot_img(img: Union[np.ndarray, Image.Image, torch.Tensor], cmap="gray", axi
         plt.savefig(save_path, cmap=cmap)
 
 
-def plot_imgs(imgs: Union[np.ndarray, List[np.ndarray], List[Image.Image], torch.Tensor], ncols=4, img_size=(5, 5),
-              cmap="gray", axis_opt="off", titles: List[str] = None, **imshow_kwargs):
+def plot_imgs(imgs: Union[np.ndarray, List[np.ndarray], List[Image.Image], torch.Tensor], ncols: int = None,
+              img_size=(5, 5), cmap="gray", axis_opt="off", titles: List[str] = None, **imshow_kwargs):
     """
     :param imgs: batch of imgs with shape (batch_size, h, w) or (batch_size, h, w, 3)
     :param ncols: number of columns
@@ -236,6 +236,9 @@ def plot_imgs(imgs: Union[np.ndarray, List[np.ndarray], List[Image.Image], torch
     """
     n_imgs = len(imgs)
     assert 0 < n_imgs < 100
+
+    if ncols is None:
+        ncols = min(n_imgs, 5)
 
     if titles is not None:
         assert len(imgs) == len(titles), f"{len(imgs)} != {len(titles)}"

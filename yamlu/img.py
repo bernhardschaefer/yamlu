@@ -38,6 +38,11 @@ class BoundingBox:
         assert self.t <= self.b, f"Invalid bounding box coordinates: {self}"
         assert self.l <= self.r, f"Invalid bounding box coordinates: {self}"
 
+    @classmethod
+    def from_center_wh(cls, center, w, h):
+        x, y = center
+        return cls(t=y - h / 2, l=x - w / 2, b=y + h / 2, r=x + w / 2)
+
     @property
     def tlbr(self):
         return self.t, self.l, self.b, self.r
@@ -189,7 +194,7 @@ def plot_anns(ax, annotations: List[Annotation], with_index=False):
     ann_colors = compute_colors_for_annotations(annotations)
 
     # very rough estimate
-    fontsize = ax.figure.get_size_inches()[0]
+    fontsize = max(ax.figure.get_size_inches()[0], 10)
     lw = fontsize / 10
 
     for i, ann, color in zip(range(len(annotations)), annotations, ann_colors):

@@ -76,6 +76,13 @@ class BoundingBox:
     def bb_coco(self):
         return self.l, self.t, self.w, self.h
 
+    @property
+    def bb_pascal_voc(self):
+        """
+        :return: bounding box in pascal voc format ltrb (w before h dimension)
+        """
+        return self.l, self.t, self.r, self.b
+
     def is_within_bb(self, bb):
         t, l, b, r = self.tlbr
         return t >= bb.t and l >= bb.l and b <= bb.b and r <= bb.r

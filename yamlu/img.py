@@ -43,6 +43,10 @@ class BoundingBox:
         x, y = center
         return cls(t=y - h / 2, l=x - w / 2, b=y + h / 2, r=x + w / 2)
 
+    @classmethod
+    def from_pascal_voc(cls, l, t, r, b):
+        return cls(t, l, b, r)
+
     @property
     def tlbr(self):
         return self.t, self.l, self.b, self.r
@@ -79,7 +83,7 @@ class BoundingBox:
     @property
     def bb_pascal_voc(self):
         """
-        :return: bounding box in pascal voc format ltrb (w before h dimension)
+        :return: bounding box in pascal voc format ltrb, which corresponds to standard bottom-left origin
         """
         return self.l, self.t, self.r, self.b
 

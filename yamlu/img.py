@@ -1,3 +1,4 @@
+import logging
 import math
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -14,6 +15,8 @@ from PIL import Image
 from matplotlib import patheffects
 
 from yamlu.bb import bbs_ious
+
+_logger = logging.getLogger(__name__)
 
 
 @dataclass(eq=True, frozen=True)
@@ -202,6 +205,10 @@ def plot_ann_img(ann_img: AnnotatedImage, figsize, with_bb=True, with_head_tail=
 
 
 def plot_anns(ax, annotations: List[Annotation], with_index=False):
+    if len(annotations) == 0:
+        _logger.warning("plot_anns: passed empty annotations list")
+        return
+
     ann_colors = compute_colors_for_annotations(annotations)
 
     # very rough estimate

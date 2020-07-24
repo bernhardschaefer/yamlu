@@ -2,7 +2,7 @@ import logging
 import math
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Union
 
 import matplotlib as mpl
 import matplotlib.cm as cmx
@@ -127,12 +127,8 @@ class BoundingBox:
 class Annotation:
     category: str  # class label
     bb: BoundingBox
-    img: np.ndarray = field(default=None, repr=False, compare=False)  # optional img for just this annotation
-    # TODO use extra_fields
     text: str = field(default=None, compare=False)  # optional: only for text category
-    head: Tuple[float, float] = field(default=None, compare=False)  # optional: only for arrow category
-    tail: Tuple[float, float] = field(default=None, compare=False)  # optional: only for arrow category
-    xml_id: str = field(default=None)
+    score: float = field(default=None, compare=False)  # optional: only inference
 
 
 @dataclass
@@ -141,34 +137,13 @@ class AnnotatedImage:
     width: int
     height: int
     annotations: List[Annotation]
-    img: Optional[np.ndarray] = field(default=None, repr=False)
+    img: Optional[Image.Image] = field(default=None, repr=False)
 
-    def __post_init__(self):
-        if not hasattr(self, "img") or self.img is None:
-            self.reload_img()
-
-    @property
-    def arrows(self):
-        return [a for a in self.annotations if a.category == 'arrow']
-
-    @property
-    def nodes(self):
-        return [a for a in self.annotations if a.category not in ['text', 'arrow']]
-
-    def reload_img(self):
-        # 255 <-> BLACK
-        img = np.full((self.height, self.width, 3), fill_value=255, dtype=np.uint8)
-        for a in self.annotations:
-            img = np.minimum(a.img, img)
-        self.img = img
-
-    def plot(self, figsize=None, with_bb=True, with_head_tail=True, with_index=False, axis_opt="off"):
-        plot_ann_img(self, figsize=figsize, with_bb=with_bb, with_head_tail=with_head_tail,
-                     with_index=with_index, axis_opt=axis_opt)
+    def plot(self, **kwargs):
+        plot_ann_img(self, **kwargs)
 
     def save(self, imgs_path: Path):
-        img = Image.fromarray(self.img)
-        img.save(imgs_path / self.filename)
+        self.img.save(imgs_path / self.filename)
 
 
 def compute_colors_for_annotations(annotations, cmap='jet'):
@@ -186,7 +161,7 @@ def compute_colors_for_annotations(annotations, cmap='jet'):
     return [scalarMap.to_rgba(c) for c in cat_ids]
 
 
-def plot_ann_img(ann_img: AnnotatedImage, figsize, with_bb=True, with_head_tail=True, with_index=True, axis_opt="off",
+def plot_ann_img(ann_img: AnnotatedImage, figsize, with_bb=True, with_index=True, axis_opt="off",
                  **imshow_kwargs):
     plot_img(ann_img.img, figsize=figsize, axis_opt=axis_opt, **imshow_kwargs)
     ax = plt.gca()
@@ -194,17 +169,8 @@ def plot_ann_img(ann_img: AnnotatedImage, figsize, with_bb=True, with_head_tail=
     if with_bb:
         plot_anns(ax, ann_img.annotations, with_index=with_index)
 
-    if with_head_tail:
-        # get heads and arrows as np arrays with shape (N,2), where N is number of arrows
-        heads_tails = list(
-            (a.head, a.tail) for a in ann_img.annotations if a.category == 'arrow' and a.head is not None)
-        if len(heads_tails) > 0:
-            heads, tails = list(map(np.array, zip(*heads_tails)))
-            ax.scatter(*heads.T, s=50, zorder=10, alpha=.8, color="green")
-            ax.scatter(*tails.T, s=50, zorder=10, alpha=.8, color="SkyBlue")
 
-
-def plot_anns(ax, annotations: List[Annotation], with_index=False):
+def plot_anns(ax, annotations: List[Annotation], with_index=False, digits=2):
     if len(annotations) == 0:
         _logger.warning("plot_anns: passed empty annotations list")
         return
@@ -222,6 +188,8 @@ def plot_anns(ax, annotations: List[Annotation], with_index=False):
         ax.add_patch(patch)
 
         text = ann.category
+        if ann.score is not None:
+            text += f" {round(ann.score * 100, digits)}%"
         if with_index:
             text += f" {i}"
         txt = ax.text(ann.bb.l, ann.bb.t, text, verticalalignment='bottom', color=color, fontsize=fontsize,

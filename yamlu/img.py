@@ -170,10 +170,12 @@ def plot_ann_img(ann_img: AnnotatedImage, figsize, with_bb=True, with_index=True
         plot_anns(ax, ann_img.annotations, with_index=with_index)
 
 
-def plot_anns(ax, annotations: List[Annotation], with_index=False, digits=2):
+def plot_anns(ax, annotations: List[Annotation], with_index=False, digits=2, min_score: float = 0.0):
     if len(annotations) == 0:
         _logger.warning("plot_anns: passed empty annotations list")
         return
+
+    annotations = [a for a in annotations if a.score is None or a.score >= min_score]
 
     ann_colors = compute_colors_for_annotations(annotations)
 

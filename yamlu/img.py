@@ -287,6 +287,7 @@ def plot_imgs(imgs: Union[np.ndarray, List[np.ndarray], List[Image.Image], torch
 
     # this is quite slow:
     # fig.tight_layout()
+    return axs
 
 
 def plot_img_paths(img_paths: Union[List[Path], List[str]], ncols=4, img_size=(5, 5)):

@@ -1,8 +1,9 @@
 import logging
 import math
+from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Dict
 
 import matplotlib as mpl
 import matplotlib.cm as cmx
@@ -139,45 +140,55 @@ class AnnotatedImage:
     annotations: List[Annotation]
     img: Optional[Image.Image] = field(default=None, repr=False)
 
-    def plot(self, **kwargs):
-        plot_ann_img(self, **kwargs)
+    def plot(self, figsize, with_bb=True, with_index=True, axis_opt="off", **imshow_kwargs):
+        plot_img(self.img, figsize=figsize, axis_opt=axis_opt, **imshow_kwargs)
+        ax = plt.gca()
+
+        if with_bb:
+            plot_anns(ax, self.annotations, with_index=with_index)
 
     def save(self, imgs_path: Path):
         self.img.save(imgs_path / self.filename)
 
+    @property
+    def size(self):
+        return self.width, self.height
 
-def compute_colors_for_annotations(annotations, cmap='jet'):
+    def __repr__(self):
+        n_anns = len(self.annotations)
+        cat_cnt = Counter(a.category for a in self.annotations)
+        s = f"AnnotatedImage(filename='{self.filename}', size={self.size}, {n_anns} annotations ({cat_cnt}))"
+        return s
+
+
+def compute_colors_for_annotations(annotations: List[Annotation], cmap='jet'):
     categories = set(a.category for a in annotations)
     cat_to_id = dict((c, i) for i, c in enumerate(categories))
+    return compute_colors(annotations, cat_to_id, cmap)
+
+
+def compute_colors(annotations: List[Annotation], cat_to_id: Dict[str, int], cmap):
     cat_ids = np.array([cat_to_id[ann.category] for ann in annotations])
 
-    values = range(len(categories))
-
     cm = plt.get_cmap(cmap)
-    cNorm = colors.Normalize(vmin=0, vmax=values[-1])
+    cNorm = colors.Normalize(vmin=0, vmax=len(cat_to_id) - 1)
     scalarMap = cmx.ScalarMappable(norm=cNorm, cmap=cm)
     scalarMap.get_clim()
 
     return [scalarMap.to_rgba(c) for c in cat_ids]
 
 
-def plot_ann_img(ann_img: AnnotatedImage, figsize, with_bb=True, with_index=True, axis_opt="off",
-                 **imshow_kwargs):
-    plot_img(ann_img.img, figsize=figsize, axis_opt=axis_opt, **imshow_kwargs)
-    ax = plt.gca()
-
-    if with_bb:
-        plot_anns(ax, ann_img.annotations, with_index=with_index)
-
-
-def plot_anns(ax, annotations: List[Annotation], with_index=False, digits=2, min_score: float = 0.0):
+def plot_anns(ax, annotations: List[Annotation], ann_colors=None, with_index=False, digits=2, min_score: float = 0.0):
     if len(annotations) == 0:
         _logger.warning("plot_anns: passed empty annotations list")
         return
 
-    annotations = [a for a in annotations if a.score is None or a.score >= min_score]
+    if colors is None:
+        ann_colors = compute_colors_for_annotations(annotations)
+    else:
+        assert len(annotations) == len(ann_colors), f"{len(annotations)} != {len(ann_colors)}"
 
-    ann_colors = compute_colors_for_annotations(annotations)
+    annotations = [a for a in annotations if a.score is None or a.score >= min_score]
 
     # very rough estimate
     fontsize = max(ax.figure.get_size_inches()[0], 10)

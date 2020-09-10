@@ -9,8 +9,14 @@
 - At this point I would suggest you to just copy & paste code snippets you find useful
 - Only supports python >= 3.7 (due to dataclasses)
 
-### Setup
+### Installation
+
+```shell
+pip install -U git+https://github.com/bernhardschaefer/yamlu.git
 ```
+
+### Setup
+```shell
 conda create -n py37-ds -y python=3.7 numpy pandas seaborn matplotlib scikit-learn pillow jupyterlab
 conda activate py37-ds
 pip install pytest

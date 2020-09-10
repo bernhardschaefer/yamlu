@@ -11,12 +11,12 @@ def test_bin_stats_np():
 
 
 def test_bin_stats_np_int():
-    arr = np.array([1, 0, 1, 0, 0])
+    arr = np.array([0, 0, 1])
     stat = np_utils.bin_stats(arr)
-    assert stat == "2/5 (40.00%)"
+    assert stat == "1/3 (33.33%)"
 
 
 def test_bin_stats_torch():
-    arr = torch.tensor([True, False, True, False, False])
+    arr = torch.tensor([False, False, True])
     stat = np_utils.bin_stats(arr)
-    assert stat == "2/5 (40.00%)"
+    assert stat == "1/3 (33.33%)"

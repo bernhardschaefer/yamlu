@@ -6,8 +6,8 @@ virtualenv:
 matrix:
   fast_finish: true
   include:
-    - python: 3.6
-      env: DISTRIB="ubuntu" TOX_PYTHON_VERSION="py36"
+    - python: 3.7
+      env: DISTRIB="ubuntu" TOX_PYTHON_VERSION="py37"
     - env: DISTRIB="conda" PYTHON_VERSION="3.7"
 install:
   - source tests/travis_install.sh

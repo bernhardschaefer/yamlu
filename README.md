@@ -7,7 +7,7 @@
 - I keep this repository for my own reference
 - This is early state and can change any time
 - At this point I would suggest you to just copy & paste code snippets you find useful
-
+- Only supports python >= 3.7 (due to dataclasses)
 
 ### Setup
 ```

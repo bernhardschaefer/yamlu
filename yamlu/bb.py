@@ -4,12 +4,16 @@ import numpy as np
 
 
 # https://medium.com/@venuktan/vectorized-intersection-over-union-iou-in-numpy-and-tensor-flow-4fa16231b63d
-def bbs_ious(bboxes1: np.ndarray, bboxes2: np.ndarray):
-    """Vectorized iou matrix calculation for two arrays of bounding boxes with t,l,b,r convention"""
-    assert bboxes1.shape[1] == 4
-    assert bboxes2.shape[1] == 4
-    t1, l1, b1, r1 = np.split(bboxes1, 4, axis=1)
-    t2, l2, b2, r2 = np.split(bboxes2, 4, axis=1)
+def iou_matrix(bb_tlbr1: np.ndarray, bb_tlbr2: np.ndarray):
+    """Pairwise vectorized iou matrix calculation for two arrays of bounding boxes with t,l,b,r convention
+    :param bb_tlbr1 shape (m,4)
+    :param bb_tlbr2 shape (n,4)
+    :return iou matrix with shape (m,n)
+    """
+    assert bb_tlbr1.shape[1] == 4
+    assert bb_tlbr2.shape[1] == 4
+    t1, l1, b1, r1 = np.split(bb_tlbr1, 4, axis=1)
+    t2, l2, b2, r2 = np.split(bb_tlbr2, 4, axis=1)
 
     t_max = np.maximum(t1, np.transpose(t2))
     l_max = np.maximum(l1, np.transpose(l2))
@@ -21,6 +25,17 @@ def bbs_ious(bboxes1: np.ndarray, bboxes2: np.ndarray):
     boxBArea = (b2 - t2 + 1) * (r2 - l2 + 1)
     iou = interArea / (boxAArea + np.transpose(boxBArea) - interArea)
     return iou
+
+
+def iou_vector(bb_tlbr1: np.ndarray, bb_tlbr2: np.ndarray):
+    """computes iou between the bounding boxes at the same index in bboxes1 and bboxes2
+    :param bboxes1 shape (n,4)
+    :param bboxes2 shape (n,4)
+    :return iou vector with shape (n,)
+    """
+    assert bb_tlbr1.shape[0] == bb_tlbr2.shape[0]
+    ious = [iou_matrix(b1[np.newaxis, :], b2[np.newaxis, :]).squeeze() for b1, b2 in zip(bb_tlbr1, bb_tlbr2)]
+    return np.array(ious)
 
 
 # inspired by:

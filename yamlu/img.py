@@ -15,7 +15,7 @@ import torch
 from PIL import Image
 from matplotlib import patheffects
 
-from yamlu.bb import bbs_ious
+from yamlu.bb import iou_vector
 
 _logger = logging.getLogger(__name__)
 
@@ -98,7 +98,7 @@ class BoundingBox:
     def iou(self, bb):
         bbs1 = np.array(self.tlbr).reshape(1, -1)
         bbs2 = np.array(bb.tlbr).reshape(1, -1)
-        return bbs_ious(bbs1, bbs2).item()
+        return iou_vector(bbs1, bbs2).item()
 
     def union(self, bb):
         return BoundingBox(t=min(self.t, bb.t), l=min(self.l, bb.l), b=max(self.b, bb.b), r=max(self.r, bb.r))

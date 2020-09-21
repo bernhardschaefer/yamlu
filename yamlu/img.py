@@ -3,7 +3,7 @@ import math
 from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Optional, Union, Dict
+from typing import List, Optional, Union, Dict, Any
 
 import matplotlib as mpl
 import matplotlib.cm as cmx
@@ -20,7 +20,6 @@ from yamlu.bb import iou_vector
 _logger = logging.getLogger(__name__)
 
 
-@dataclass(eq=True, frozen=True)
 class BoundingBox:
     """
     This Bounding Box implementation assumes the coordinates to be inclusive.
@@ -28,24 +27,28 @@ class BoundingBox:
     For some background see: https://github.com/facebookresearch/Detectron/blob/master/detectron/utils/boxes.py#L23
     """
 
-    # top, left, bottom, right
-    t: float
-    l: float
-    b: float
-    r: float
+    def __init__(self, t: float, l: float, b: float, r: float):
+        self.t, self.l, self.b, self.r = t, l, b, r
 
-    def __post_init__(self):
-        assert self.t >= 0, f"Invalid bounding box coordinates: {self}"
-        assert self.l >= 0, f"Invalid bounding box coordinates: {self}"
-        assert self.b >= 0, f"Invalid bounding box coordinates: {self}"
-        assert self.r >= 0, f"Invalid bounding box coordinates: {self}"
-        assert self.t <= self.b, f"Invalid bounding box coordinates: {self}"
-        assert self.l <= self.r, f"Invalid bounding box coordinates: {self}"
+        assert t >= 0, f"Invalid bounding box coordinates: {self}"
+        assert l >= 0, f"Invalid bounding box coordinates: {self}"
+        assert b >= 0, f"Invalid bounding box coordinates: {self}"
+        assert r >= 0, f"Invalid bounding box coordinates: {self}"
+        assert t <= b, f"Invalid bounding box coordinates: {self}"
+        assert l <= r, f"Invalid bounding box coordinates: {self}"
+
+    def __repr__(self):
+        return f"BoundingBox(t={self.t:.2f},l={self.l:.2f},b={self.b:.2f},r={self.r:.2f})"
 
     @classmethod
-    def from_center_wh(cls, center, w, h):
+    def from_center_wh(cls, center, w, h, clip_tl=False):
         x, y = center
-        return cls(t=y - h / 2, l=x - w / 2, b=y + h / 2, r=x + w / 2)
+        t = y - h / 2
+        l = x - w / 2
+        if clip_tl:
+            t = max(t, 0)
+            l = max(l, 0)
+        return cls(t=t, l=l, b=y + h / 2, r=x + w / 2)
 
     @classmethod
     def from_pascal_voc(cls, l, t, r, b):
@@ -124,12 +127,26 @@ class BoundingBox:
         )
 
 
-@dataclass(eq=True, frozen=True)
 class Annotation:
-    category: str  # class label
-    bb: BoundingBox
-    text: str = field(default=None, compare=False)  # optional: only for text category
-    score: float = field(default=None, compare=False)  # optional: only inference
+    def __init__(self, category: str, bb: BoundingBox, **kwargs: Any):
+        self._fields: Dict[str, Any] = dict(kwargs)
+
+        self.category = category
+        self.bb = bb
+
+    def __setattr__(self, name: str, val: Any) -> None:
+        if name.startswith("_"):
+            super().__setattr__(name, val)
+        else:
+            self._fields[name] = val
+
+    def __getattr__(self, name: str) -> Any:
+        if name == "_fields" or name not in self._fields:
+            raise AttributeError(f"Cannot find field '{name}'!")
+        return self._fields[name]
+
+    def __contains__(self, key):
+        return key in self._fields
 
 
 @dataclass
@@ -188,7 +205,7 @@ def plot_anns(ax, annotations: List[Annotation], ann_colors=None, with_index=Fal
     else:
         assert len(annotations) == len(ann_colors), f"{len(annotations)} != {len(ann_colors)}"
 
-    annotations = [a for a in annotations if a.score is None or a.score >= min_score]
+    annotations = [a for a in annotations if "score" not in a or a.score >= min_score]
 
     # very rough estimate
     fontsize = max(ax.figure.get_size_inches()[0], 10)
@@ -201,7 +218,7 @@ def plot_anns(ax, annotations: List[Annotation], ann_colors=None, with_index=Fal
         ax.add_patch(patch)
 
         text = ann.category
-        if ann.score is not None:
+        if "score" in ann:
             text += f" {round(ann.score * 100, digits)}%"
         if with_index:
             text += f" {i}"

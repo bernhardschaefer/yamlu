@@ -142,6 +142,8 @@ class Annotation:
             self._fields[name] = val
 
     def __getattr__(self, name: str) -> Any:
+        if name.startswith("_"):
+            return super().__getattribute__(name)
         return self._fields[name]
 
     def __contains__(self, key):

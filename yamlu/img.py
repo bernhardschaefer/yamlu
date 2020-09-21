@@ -41,6 +41,14 @@ class BoundingBox:
         return f"BoundingBox(t={self.t:.2f},l={self.l:.2f},b={self.b:.2f},r={self.r:.2f})"
 
     @classmethod
+    def clipped_to_image(cls, t: float, l: float, b: float, r: float, img_w: int, img_h: int):
+        t = max(t, 0)
+        l = max(l, 0)
+        b = min(b, img_h)
+        r = min(r, img_w)
+        return BoundingBox(t, l, b, r)
+
+    @classmethod
     def from_center_wh(cls, center, w, h, clip_tl=False):
         x, y = center
         t = y - h / 2
@@ -135,6 +143,14 @@ class Annotation:
             **kwargs
         }
 
+    @property
+    def category(self):
+        return self._fields["category"]
+
+    @property
+    def bb(self):
+        return self._fields["bb"]
+
     def __setattr__(self, name: str, val: Any) -> None:
         if name.startswith("_"):
             super().__setattr__(name, val)
@@ -149,9 +165,10 @@ class Annotation:
     def __contains__(self, key):
         return key in self._fields
 
-    def __repr__(self):
+    def __str__(self):
+        # TODO this leads to infinite recursion, why?
         fields_str = ", ".join(f"{k}={v}" for k, v in self._fields.items() if k not in ["category", "bb"])
-        return f"Annotation(category={self.category}, bb={self.bb}, {fields_str})"
+        return f"{self.__class__.__name__}(category={self.category}, bb={self.bb}, {fields_str})"
 
 
 @dataclass
@@ -171,6 +188,14 @@ class AnnotatedImage:
 
     def save(self, imgs_path: Path):
         self.img.save(imgs_path / self.filename)
+
+    def save_with_anns(self, directory: Path):
+        self.plot()
+        img_name = Path(self.filename).stem + "_annotated.png"
+        img_path = directory / img_name
+        plt.savefig(str(img_path))
+        plt.close()
+        return img_path
 
     @property
     def size(self):
@@ -230,6 +255,11 @@ def plot_anns(ax, annotations: List[Annotation], ann_colors=None, with_index=Fal
         txt = ax.text(ann.bb.l, ann.bb.t, text, verticalalignment='bottom', color=color, fontsize=fontsize,
                       alpha=.5)
         txt.set_path_effects([patheffects.Stroke(linewidth=1, foreground='BLACK'), patheffects.Normal()])
+
+        if "head" in ann:
+            ax.scatter(*ann.head, marker=">", s=50, alpha=.5, color="green", edgecolor="black", linewidth=1)
+        if "tail" in ann:
+            ax.scatter(*ann.tail, marker="o", s=50, alpha=.5, color="green", edgecolor="black", linewidth=1)
 
 
 def plot_img(img: Union[np.ndarray, Image.Image, torch.Tensor], cmap="gray", axis_opt="off", figsize=None,

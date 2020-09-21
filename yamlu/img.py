@@ -129,10 +129,11 @@ class BoundingBox:
 
 class Annotation:
     def __init__(self, category: str, bb: BoundingBox, **kwargs: Any):
-        self._fields: Dict[str, Any] = dict(kwargs)
-
-        self.category = category
-        self.bb = bb
+        self._fields: Dict[str, Any] = {
+            "category": category,
+            "bb": bb,
+            **kwargs
+        }
 
     def __setattr__(self, name: str, val: Any) -> None:
         if name.startswith("_"):
@@ -141,12 +142,14 @@ class Annotation:
             self._fields[name] = val
 
     def __getattr__(self, name: str) -> Any:
-        if name == "_fields" or name not in self._fields:
-            raise AttributeError(f"Cannot find field '{name}'!")
         return self._fields[name]
 
     def __contains__(self, key):
         return key in self._fields
+
+    def __repr__(self):
+        fields_str = ", ".join(f"{k}={v}" for k, v in self._fields.items() if k not in ["category", "bb"])
+        return f"Annotation(category={self.category}, bb={self.bb}, {fields_str})"
 
 
 @dataclass

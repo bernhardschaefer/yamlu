@@ -140,7 +140,7 @@ class AnnotatedImage:
     annotations: List[Annotation]
     img: Optional[Image.Image] = field(default=None, repr=False)
 
-    def plot(self, figsize, with_bb=True, with_index=True, axis_opt="off", **imshow_kwargs):
+    def plot(self, figsize=None, with_bb=True, with_index=True, axis_opt="off", **imshow_kwargs):
         plot_img(self.img, figsize=figsize, axis_opt=axis_opt, **imshow_kwargs)
         ax = plt.gca()
 
@@ -183,7 +183,7 @@ def plot_anns(ax, annotations: List[Annotation], ann_colors=None, with_index=Fal
         _logger.warning("plot_anns: passed empty annotations list")
         return
 
-    if colors is None:
+    if ann_colors is None:
         ann_colors = compute_colors_for_annotations(annotations)
     else:
         assert len(annotations) == len(ann_colors), f"{len(annotations)} != {len(ann_colors)}"

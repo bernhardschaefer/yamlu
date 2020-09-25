@@ -165,10 +165,9 @@ class Annotation:
     def __contains__(self, key):
         return key in self._fields
 
-    def __str__(self):
-        # TODO this leads to infinite recursion, why?
+    def __repr__(self):
         fields_str = ", ".join(f"{k}={v}" for k, v in self._fields.items() if k not in ["category", "bb"])
-        return f"{self.__class__.__name__}(category={self.category}, bb={self.bb}, {fields_str})"
+        return f"{self.__class__.__name__}(category='{self.category}', bb={self.bb}, {fields_str})"
 
 
 @dataclass

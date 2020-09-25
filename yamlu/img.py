@@ -165,13 +165,10 @@ class Annotation:
     def __contains__(self, key):
         return key in self._fields
 
-    def __str__(self):
-        fields = self._fields
-        fields_str = ", ".join(f"{k}={v}" for k, v in fields.items() if k not in ["category", "bb"])
-        return f"{self.__class__.__name__}(category='{self.category}', bb={self.bb}, {fields_str})"
-
     def __repr__(self):
-        return self.__str__()
+        fields = self._fields
+        fields_str = ", ".join(f"{k}={v}" for k, v in fields.items() if k not in ["category", "bb", "next", "prev"])
+        return f"{self.__class__.__name__}(category='{self.category}', bb={self.bb}, {fields_str})"
 
 
 @dataclass

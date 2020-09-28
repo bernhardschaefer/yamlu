@@ -2,29 +2,29 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Union
 
-import numpy as np
-from PIL import Image
-
 from yamlu.img import AnnotatedImage, BoundingBox, Annotation
 
 
-def parse_voc_xml_img(img_path: Path, voc_xml: Union[str, Path]) -> AnnotatedImage:
-    tree = ET.parse(voc_xml)
+def parse_voc_annotations(voc_xml_path: Union[str, Path]):
+    tree = ET.parse(voc_xml_path)
     root = tree.getroot()
 
-    filename = root.find('filename').text
+    # filename = root.find('filename').text
 
     anns = []
     for obj in root.iter('object'):
         category = obj.find("name").text
 
         bbox = obj.find("bndbox")
-        bb_dict = dict((e.tag, int(e.text)) for e in bbox.getchildren())
+        bb_dict = {e.tag: int(e.text) for e in bbox}
         # we leverage the fact that voc uses xmin, ymin, xmax, ymax field names
-        bb = BoundingBox.from_xyxy(**bb_dict)
+        bb = BoundingBox.from_pascal_voc(*bb_dict.values())
 
         anns.append(Annotation(category=category, bb=bb))
 
-    img = Image.open(img_path)
-    img_np = np.array(img)
-    return AnnotatedImage(filename, width=img.width, height=img.height, annotations=anns, img=img_np)
+    return anns
+
+
+def parse_voc_xml_img(img_path: Path, voc_xml_path: Union[str, Path]) -> AnnotatedImage:
+    annotations = parse_voc_annotations(voc_xml_path)
+    return AnnotatedImage.from_img_path(img_path, annotations)

@@ -179,7 +179,13 @@ class AnnotatedImage:
     annotations: List[Annotation]
     img: Optional[Image.Image] = field(default=None, repr=False)
 
+    @classmethod
+    def from_img_path(cls, img_path: Path, annotations: List[Annotation]):
+        img = Image.open(img_path)
+        return cls(img_path.name, width=img.width, height=img.height, annotations=annotations, img=img)
+
     def plot(self, figsize=None, with_bb=True, with_index=True, axis_opt="off", **imshow_kwargs):
+        assert self.img is not None, f"{self}: missing img attribute!"
         plot_img(self.img, figsize=figsize, axis_opt=axis_opt, **imshow_kwargs)
         ax = plt.gca()
 
@@ -196,6 +202,12 @@ class AnnotatedImage:
         plt.savefig(str(img_path))
         plt.close()
         return img_path
+
+    @property
+    def boxes_tlbr(self):
+        boxes = np.array([a.bb.tlbr for a in self.annotations])
+        # reshape so that shape is (0,4) for images with no annotations
+        return boxes.reshape(len(self.annotations), 4)
 
     @property
     def size(self):

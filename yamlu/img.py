@@ -151,6 +151,13 @@ class Annotation:
     def bb(self):
         return self._fields["bb"]
 
+    def img_cropped(self, img: Union[Image.Image, np.ndarray]):
+        img = np.asarray(img)
+        t, l, b, r = self.bb.tlbr
+        t, l = math.floor(t), math.floor(l)
+        b, r = math.ceil(b) + 1, math.ceil(r) + 1
+        return Image.fromarray(img[t:b, l:r, ...])
+
     def __setattr__(self, name: str, val: Any) -> None:
         if name.startswith("_"):
             super().__setattr__(name, val)

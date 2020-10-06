@@ -51,12 +51,16 @@ class BoundingBox:
     @classmethod
     def from_center_wh(cls, center, w, h, clip_tl=False):
         x, y = center
-        t = y - h / 2
-        l = x - w / 2
+        return cls.from_xywh(x, y, w, h, clip_tl=clip_tl)
+
+    @classmethod
+    def from_xywh(cls, x, y, width, height, clip_tl=False):
+        t = y - height / 2
+        l = x - width / 2
         if clip_tl:
             t = max(t, 0)
             l = max(l, 0)
-        return cls(t=t, l=l, b=y + h / 2, r=x + w / 2)
+        return cls(t=t, l=l, b=y + height / 2, r=x + width / 2)
 
     @classmethod
     def from_pascal_voc(cls, l, t, r, b):

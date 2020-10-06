@@ -49,12 +49,8 @@ class BoundingBox:
         return BoundingBox(t, l, b, r)
 
     @classmethod
-    def from_center_wh(cls, center, w, h, clip_tl=False):
+    def from_center_wh(cls, center, width, height, clip_tl=False):
         x, y = center
-        return cls.from_xywh(x, y, w, h, clip_tl=clip_tl)
-
-    @classmethod
-    def from_xywh(cls, x, y, width, height, clip_tl=False):
         t = y - height / 2
         l = x - width / 2
         if clip_tl:
@@ -63,8 +59,20 @@ class BoundingBox:
         return cls(t=t, l=l, b=y + height / 2, r=x + width / 2)
 
     @classmethod
+    def from_xywh(cls, x, y, width, height):
+        return cls(t=y, l=x, b=y + height, r=x + width)
+
+    @classmethod
     def from_pascal_voc(cls, l, t, r, b):
         return cls(t, l, b, r)
+
+    @classmethod
+    def from_points(cls, pts: np.ndarray):
+        assert pts.ndim == 2
+        assert pts.shape[1] == 2
+        l, t = pts.min(axis=0)
+        r, b = pts.max(axis=0)
+        return BoundingBox(t, l, b, r)
 
     @property
     def tlbr(self):
@@ -90,6 +98,10 @@ class BoundingBox:
     @property
     def lr_mid(self):
         return self.l + self.w / 2
+
+    @property
+    def center(self):
+        return self.lr_mid, self.tb_mid
 
     @property
     def xy_w_h(self):
@@ -118,10 +130,21 @@ class BoundingBox:
     def union(self, bb):
         return BoundingBox(t=min(self.t, bb.t), l=min(self.l, bb.l), b=max(self.b, bb.b), r=max(self.r, bb.r))
 
-    def shrink(self, pad) -> "BoundingBox":
-        return BoundingBox(self.t + pad, self.l + pad, self.b - pad, self.r - pad)
+    def pad(self, pad) -> "BoundingBox":
+        return BoundingBox(self.t - pad, self.l - pad, self.b + pad, self.r + pad)
 
-    def rotate(self, angle, img_size):
+    def shrink(self, px) -> "BoundingBox":
+        return self.pad(-px)
+
+    def shift(self, t_delta=0, l_delta=0) -> "BoundingBox":
+        t, l, b, r = self.tlbr
+        return BoundingBox(t=t + t_delta, l=l + l_delta, b=b + t_delta, r=r + l_delta)
+
+    def scale(self, factor) -> "BoundingBox":
+        tlbr = np.array(self.tlbr) * factor
+        return BoundingBox(*tlbr)
+
+    def rotate(self, angle, img_size) -> "BoundingBox":
         assert angle % 90 == 0 and angle >= 0, f"Invalid angle: {angle}"
         img_w, img_h = img_size
         if angle == 0:
@@ -195,7 +218,7 @@ class AnnotatedImage:
         img = Image.open(img_path)
         return cls(img_path.name, width=img.width, height=img.height, annotations=annotations, img=img)
 
-    def plot(self, figsize=None, with_bb=True, with_index=True, axis_opt="off", **imshow_kwargs):
+    def plot(self, figsize=None, with_bb=True, with_index=False, axis_opt="off", **imshow_kwargs):
         assert self.img is not None, f"{self}: missing img attribute!"
         plot_img(self.img, figsize=figsize, axis_opt=axis_opt, **imshow_kwargs)
         ax = plt.gca()
@@ -356,11 +379,11 @@ def read_img(img_path: Union[Path, str]):
     return exif_transpose(img)
 
 
-# copied from detectron2
+# inspired from detectron2
 def exif_transpose(image):
     """
     If an image has an EXIF Orientation tag, return a new image that is
-    transposed accordingly. Otherwise, return a copy of the image.
+    transposed accordingly. Otherwise, return the image.
 
     :param image: The image to transpose.
     :return: An image.
@@ -381,7 +404,7 @@ def exif_transpose(image):
         del exif[0x0112]
         transposed_image.info["exif"] = exif.tobytes()
         return transposed_image
-    return image.copy()
+    return image
 
 
 def figsize_from_img(img: Union[Image.Image, np.ndarray]):

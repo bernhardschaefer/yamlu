@@ -237,6 +237,9 @@ class AnnotatedImage:
         plt.close()
         return img_path
 
+    def filter(self, category: str) -> List[Annotation]:
+        return [a for a in self.annotations if a.category == category]
+
     @property
     def boxes_tlbr(self):
         boxes = np.array([a.bb.tlbr for a in self.annotations])

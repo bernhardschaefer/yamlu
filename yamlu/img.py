@@ -30,12 +30,11 @@ class BoundingBox:
     def __init__(self, t: float, l: float, b: float, r: float):
         self.t, self.l, self.b, self.r = t, l, b, r
 
-        assert t >= 0, f"Invalid bounding box coordinates: {self}"
-        assert l >= 0, f"Invalid bounding box coordinates: {self}"
-        assert b >= 0, f"Invalid bounding box coordinates: {self}"
-        assert r >= 0, f"Invalid bounding box coordinates: {self}"
         assert t <= b, f"Invalid bounding box coordinates: {self}"
         assert l <= r, f"Invalid bounding box coordinates: {self}"
+
+        if any(x < 0 for x in [t, l, b, r]):
+            _logger.warning(f"Bounding box has coordinates <= 0: {self}")
 
     def __repr__(self):
         return f"BoundingBox(t={self.t:.2f},l={self.l:.2f},b={self.b:.2f},r={self.r:.2f})"
@@ -117,6 +116,9 @@ class BoundingBox:
         :return: bounding box in pascal voc format ltrb, which corresponds to standard bottom-left origin
         """
         return self.l, self.t, self.r, self.b
+
+    def is_within_img(self, img_w, img_h):
+        return self.is_within_bb(BoundingBox(0, 0, b=img_h, r=img_w))
 
     def is_within_bb(self, bb):
         t, l, b, r = self.tlbr
@@ -215,7 +217,7 @@ class AnnotatedImage:
 
     @classmethod
     def from_img_path(cls, img_path: Path, annotations: List[Annotation]):
-        img = Image.open(img_path)
+        img = read_img(img_path)
         return cls(img_path.name, width=img.width, height=img.height, annotations=annotations, img=img)
 
     def plot(self, figsize=None, with_bb=True, with_index=False, axis_opt="off", **imshow_kwargs):

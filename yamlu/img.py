@@ -27,51 +27,53 @@ class BoundingBox:
     For some background see: https://github.com/facebookresearch/Detectron/blob/master/detectron/utils/boxes.py#L23
     """
 
-    def __init__(self, t: float, l: float, b: float, r: float):
+    def __init__(self, t: float, l: float, b: float, r: float, allow_neg_coord=False):
         self.t, self.l, self.b, self.r = t, l, b, r
+        self.allow_neg_coord = allow_neg_coord
 
         assert t <= b, f"Invalid bounding box coordinates: {self}"
         assert l <= r, f"Invalid bounding box coordinates: {self}"
 
         if any(x < 0 for x in [t, l, b, r]):
-            _logger.warning(f"Bounding box has coordinates <= 0: {self}")
+            msg = f"Bounding box has coordinates <= 0: {self}"
+            if allow_neg_coord:
+                _logger.debug(msg)
+            else:
+                raise ValueError(msg)
 
     def __repr__(self):
         return f"BoundingBox(t={self.t:.2f},l={self.l:.2f},b={self.b:.2f},r={self.r:.2f})"
 
     @classmethod
     def clipped_to_image(cls, t: float, l: float, b: float, r: float, img_w: int, img_h: int):
-        t = max(t, 0)
-        l = max(l, 0)
-        b = min(b, img_h)
-        r = min(r, img_w)
-        return BoundingBox(t, l, b, r)
+        return BoundingBox(t=max(t, 0), l=max(l, 0), b=min(b, img_h), r=min(r, img_w))
 
     @classmethod
-    def from_center_wh(cls, center, width, height, clip_tl=False):
+    def from_center_wh(cls, center, width, height, allow_neg_coord=False):
         x, y = center
-        t = y - height / 2
-        l = x - width / 2
-        if clip_tl:
-            t = max(t, 0)
-            l = max(l, 0)
-        return cls(t=t, l=l, b=y + height / 2, r=x + width / 2)
+        return cls(
+            t=y - height / 2,
+            l=x - width / 2,
+            b=y + height / 2,
+            r=x + width / 2,
+            allow_neg_coord=allow_neg_coord
+        )
 
     @classmethod
-    def from_xywh(cls, x, y, width, height):
-        return cls(t=y, l=x, b=y + height, r=x + width)
+    def from_xywh(cls, x, y, width, height, allow_neg_coord=False):
+        return cls(t=y, l=x, b=y + height, r=x + width, allow_neg_coord=allow_neg_coord)
 
     @classmethod
-    def from_pascal_voc(cls, l, t, r, b):
-        return cls(t, l, b, r)
+    def from_pascal_voc(cls, l, t, r, b, allow_neg_coord=False):
+        return cls(t, l, b, r, allow_neg_coord)
 
     @classmethod
-    def from_points(cls, pts: np.ndarray):
+    def from_points(cls, pts: np.ndarray, allow_neg_coord=False):
         assert pts.ndim == 2
         assert pts.shape[1] == 2
         l, t = pts.min(axis=0)
         r, b = pts.max(axis=0)
-        return BoundingBox(t, l, b, r)
+        return BoundingBox(t, l, b, r, allow_neg_coord)
 
     @property
     def tlbr(self):
@@ -130,21 +132,32 @@ class BoundingBox:
         return iou_vector(bbs1, bbs2).item()
 
     def union(self, bb):
-        return BoundingBox(t=min(self.t, bb.t), l=min(self.l, bb.l), b=max(self.b, bb.b), r=max(self.r, bb.r))
+        return BoundingBox(t=min(self.t, bb.t), l=min(self.l, bb.l), b=max(self.b, bb.b), r=max(self.r, bb.r),
+                           allow_neg_coord=self.allow_neg_coord)
 
     def pad(self, pad) -> "BoundingBox":
-        return BoundingBox(self.t - pad, self.l - pad, self.b + pad, self.r + pad)
+        return BoundingBox(self.t - pad, self.l - pad, self.b + pad, self.r + pad, allow_neg_coord=self.allow_neg_coord)
+
+    def pad_min_size(self, w_min, h_min):
+        w_new = max(self.w, w_min)
+        h_new = max(self.h, h_min)
+        return BoundingBox.from_center_wh(self.center, w_new, h_new)
 
     def shrink(self, px) -> "BoundingBox":
         return self.pad(-px)
 
     def shift(self, t_delta=0, l_delta=0) -> "BoundingBox":
         t, l, b, r = self.tlbr
-        return BoundingBox(t=t + t_delta, l=l + l_delta, b=b + t_delta, r=r + l_delta)
+        return BoundingBox(t=t + t_delta, l=l + l_delta, b=b + t_delta, r=r + l_delta,
+                           allow_neg_coord=self.allow_neg_coord)
+
+    def clip_to_image(self, img_w: int, img_h: int) -> "BoundingBox":
+        t, l, b, r = self.tlbr
+        return BoundingBox(t=max(t, 0), l=max(l, 0), b=min(b, img_h), r=min(r, img_w))
 
     def scale(self, factor) -> "BoundingBox":
         tlbr = np.array(self.tlbr) * factor
-        return BoundingBox(*tlbr)
+        return BoundingBox(*tlbr, allow_neg_coord=self.allow_neg_coord)
 
     def rotate(self, angle, img_size) -> "BoundingBox":
         assert angle % 90 == 0 and angle >= 0, f"Invalid angle: {angle}"
@@ -173,12 +186,16 @@ class Annotation:
         }
 
     @property
-    def category(self):
+    def category(self) -> str:
         return self._fields["category"]
 
     @property
-    def bb(self):
+    def bb(self) -> BoundingBox:
         return self._fields["bb"]
+
+    @property
+    def extra_fields(self):
+        return {k: v for k, v in self._fields.items() if k not in ["category", "bb"]}
 
     def img_cropped(self, img: Union[Image.Image, np.ndarray]):
         img = np.asarray(img)
@@ -202,8 +219,8 @@ class Annotation:
         return key in self._fields
 
     def __repr__(self):
-        fields = self._fields
-        fields_str = ", ".join(f"{k}={v}" for k, v in fields.items() if k not in ["category", "bb", "next", "prev"])
+        # only get fields that are not of type BoundingBox to prevent potentially infinite recursion
+        fields_str = ", ".join(f"{k}={v}" for k, v in self.extra_fields.items() if not isinstance(v, BoundingBox))
         return f"{self.__class__.__name__}(category='{self.category}', bb={self.bb}, {fields_str})"
 
 
@@ -239,8 +256,14 @@ class AnnotatedImage:
         plt.close()
         return img_path
 
-    def filter(self, category: str) -> List[Annotation]:
-        return [a for a in self.annotations if a.category == category]
+    def filter(self, category: str, *other_categories) -> List[Annotation]:
+        categories = [category, *other_categories]
+        if isinstance(categories, str):
+            categories = [categories]
+        return [a for a in self.annotations if a.category in categories]
+
+    def filter_substr(self, substr: str):
+        return [a for a in self.annotations if substr in a.category]
 
     @property
     def boxes_tlbr(self):

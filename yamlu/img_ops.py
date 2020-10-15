@@ -1,0 +1,32 @@
+from typing import Union, Tuple
+
+import numpy as np
+from PIL import Image
+from matplotlib import colors
+
+
+def white_to_transparency(img: Image.Image) -> Image.Image:
+    """Makes the white pixels in an image transparent"""
+    # noinspection PyTypeChecker
+    x = np.asarray(img.convert('RGBA')).copy()
+    # inspired by https://stackoverflow.com/a/54148416
+    non_white_mask = (x[:, :, :3] != 255).any(axis=2)
+    x[:, :, 3] = (255 * non_white_mask).astype(np.uint8)
+    return Image.fromarray(x)
+
+
+def black_to_color(img: Image.Image, color: Union[str, Tuple[int, int, int]], thresh=128) -> Image.Image:
+    """
+    Converts black pixels in an image to another color
+    :param img: source image
+    :param color: target color to apply to black pixels
+    :param thresh: a pixel value threshold, each pixel with intensity less than thresh will be converted
+    """
+    rgb = (np.array(colors.to_rgb(color)) * 255.).astype(np.uint8)
+
+    # noinspection PyTypeChecker
+    x = np.asarray(img).copy()
+    black_mask = (x[:, :, :3] <= thresh).all(axis=2)
+    x[black_mask, :3] = rgb
+
+    return Image.fromarray(x)

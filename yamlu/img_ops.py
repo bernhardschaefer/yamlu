@@ -5,12 +5,16 @@ from PIL import Image
 from matplotlib import colors
 
 
-def white_to_transparency(img: Image.Image) -> Image.Image:
-    """Makes the white pixels in an image transparent"""
+def white_to_transparency(img: Image.Image, thresh=255) -> Image.Image:
+    """
+    Makes the white pixels in an image transparent
+    :param img: source image
+    :param thresh: pixels where all RGB values are higher or equal than this threshold are considered white
+    """
     # noinspection PyTypeChecker
     x = np.asarray(img.convert('RGBA')).copy()
     # inspired by https://stackoverflow.com/a/54148416
-    non_white_mask = (x[:, :, :3] != 255).any(axis=2)
+    non_white_mask = (x[:, :, :3] < thresh).any(axis=2)
     x[:, :, 3] = (255 * non_white_mask).astype(np.uint8)
     return Image.fromarray(x)
 

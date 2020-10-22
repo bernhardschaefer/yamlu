@@ -12,7 +12,7 @@ from tqdm import tqdm
 
 from yamlu.img import AnnotatedImage
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 
 class Dataset(ABC):
@@ -56,14 +56,15 @@ class CocoDatasetExport:
         self.n_jobs = n_jobs
         if n_jobs is None:
             self.n_jobs = min([loky.backend.context.cpu_count() - 2, 16, max(ds.split_n_imgs.values())])
+        _logger.info("Initialized %s with %d jobs", self.__class__.__name__, self.n_jobs)
 
     def dump_dataset(self):
         for split in self.ds.splits:
             self.dump_split(split)
 
     def dump_split(self, split: str):
-        logger.info("%s: starting split=%s, write_img=%s, write_ann_img=%s, sample=%s", self.ds.name, split,
-                    self.write_img, self.write_ann_img, self.sample)
+        _logger.info("%s: starting split=%s, write_img=%s, write_ann_img=%s, sample=%s", self.ds.name, split,
+                     self.write_img, self.write_ann_img, self.sample)
         assert split in self.ds.splits
 
         split_path = self.create_split_path_dir(split, remove_existing_images=self.write_img)
@@ -71,6 +72,9 @@ class CocoDatasetExport:
         ann_imgs_path = split_path.parent / f"{split}_annotated"
         if self.write_ann_img:
             ann_imgs_path.mkdir(exist_ok=True, parents=True)
+            # remove existing files in directory
+            for p in ann_imgs_path.iterdir():
+                p.unlink()
 
         n = self.sample if self.sample is not None else self.ds.split_n_imgs[split]
 
@@ -116,16 +120,16 @@ class CocoJsonExporter:
         indent = None if self.sample is None else 2
 
         coco_json_path = self._split_coco_json_path(split)
-        logger.info("Start dumping coco %d annotations to %s", len(ann_imgs), coco_json_path)
+        _logger.info("Start dumping coco %d annotations to %s", len(ann_imgs), coco_json_path)
         coco = self.create_coco_dict(ann_imgs)
-        logger.info("Finished creating coco annotations")
+        _logger.info("Finished creating coco annotations")
 
         coco_json_path.parent.mkdir(exist_ok=True, parents=True)
         try:
             with coco_json_path.open("w") as f:
                 json.dump(coco, f, indent=indent)
         except TypeError as e:
-            logger.warning("Coco object not json serializable:\n%s", coco)
+            _logger.warning("Coco object not json serializable:\n%s", coco)
             raise e
 
     def create_coco_dict(self, ann_imgs: List[AnnotatedImage]) -> Dict:

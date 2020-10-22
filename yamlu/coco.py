@@ -1,6 +1,7 @@
 import itertools
 import json
 import logging
+import random
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import List, Tuple, Optional, Dict
@@ -13,6 +14,8 @@ from tqdm import tqdm
 from yamlu.img import AnnotatedImage
 
 _logger = logging.getLogger(__name__)
+
+COCO_FIELD_KEYS = {"id", "category_id", "bbox", "image_id", "iscrowd", "keypoints"}
 
 
 class Dataset(ABC):
@@ -76,10 +79,13 @@ class CocoDatasetExport:
             for p in ann_imgs_path.iterdir():
                 p.unlink()
 
-        n = self.sample if self.sample is not None else self.ds.split_n_imgs[split]
+        idxs = list(range(self.ds.split_n_imgs[split]))
+        if self.sample is not None and len(idxs) > self.sample:
+            random.seed(0)
+            idxs = random.sample(idxs, self.sample)
 
         parallel = Parallel(n_jobs=self.n_jobs)
-        ann_imgs = parallel(delayed(self.dump_image)(idx, split, split_path, ann_imgs_path) for idx in tqdm(range(n)))
+        ann_imgs = parallel(delayed(self.dump_image)(idx, split, split_path, ann_imgs_path) for idx in tqdm(idxs))
 
         self.coco_json_exporter.dump_split_coco_json(ann_imgs, split)
 
@@ -115,6 +121,8 @@ class CocoJsonExporter:
     def __init__(self, ds: Dataset, sample: Optional[int]):
         self.ds = ds
         self.sample = check_sample_param(sample)
+
+        self.excluded_fields = set(self.ds.keypoint_fields).union(COCO_FIELD_KEYS)
 
     def dump_split_coco_json(self, ann_imgs: List[AnnotatedImage], split: str):
         indent = None if self.sample is None else 2
@@ -153,6 +161,7 @@ class CocoJsonExporter:
         for ann_id, ann in enumerate(ann_img.annotations):
             coco_ann = {
                 "id": _create_ann_id(img_id, ann_id, ann_img),
+                "category": ann.category,  # this isn't strictly required but makes debugging easier
                 "category_id": self.ds.cat_name_to_id[ann.category],
                 "bbox": list(map(_to_python_type, ann.bb.bb_coco)),
                 # "area": _to_int_or_float(ann.bb.size),
@@ -175,12 +184,13 @@ class CocoJsonExporter:
                 for i, k in enumerate(self.ds.keypoint_fields):
                     if k in ann:
                         x, y = getattr(ann, k)
-                        kps[i: i + 3] = [x, y, 2]
+                        kps[i * 3: i * 3 + 3] = [x, y, 2]
 
                 coco_ann["keypoints"] = kps.tolist()
 
+            # make sure we don't overwrite reserved fields
             coco_ann.update({
-                k: _to_python_type(v) for k, v in ann.extra_fields.items() if k not in self.ds.keypoint_fields
+                k: _to_python_type(v) for k, v in ann.extra_fields.items() if k not in self.excluded_fields
             })
 
             coco_anns.append(coco_ann)

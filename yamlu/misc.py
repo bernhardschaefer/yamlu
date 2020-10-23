@@ -1,4 +1,5 @@
 import functools
+import itertools
 import logging
 import os
 import pickle
@@ -13,6 +14,10 @@ import numpy as np
 import torch
 
 _logger = logging.getLogger(__name__)
+
+
+def flatten(collection):
+    return list(itertools.chain(*collection))
 
 
 # copied from maskrcnn-benchmark

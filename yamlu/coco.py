@@ -3,6 +3,7 @@ import json
 import logging
 import random
 from abc import ABC, abstractmethod
+from functools import partial
 from pathlib import Path
 from typing import List, Tuple, Optional, Dict
 
@@ -20,7 +21,7 @@ COCO_FIELD_KEYS = {"id", "category_id", "bbox", "image_id", "iscrowd", "keypoint
 
 class Dataset(ABC):
     def __init__(self, name: str, dataset_path: Path, split_n_imgs: Dict[str, int], coco_categories: List[Dict],
-                 keypoint_fields: List[str]):
+                 keypoint_fields: List[str], id_field: str = None, relation_fields: Dict[str, str] = None):
         self.name = name
         self.dataset_path = dataset_path
 
@@ -31,7 +32,12 @@ class Dataset(ABC):
         self.cat_name_to_id = {c['name']: c['id'] for c in self.coco_categories}
         self.cat_id_to_name = {c['id']: c['name'] for c in self.coco_categories}
 
+        # TODO document these fields and what they do
         self.keypoint_fields = keypoint_fields
+        self.id_field = id_field
+        self.relation_fields = relation_fields
+        if self.relation_fields is not None:
+            assert self.id_field is not None, "id field required if the dataset has relations"
 
     def has_keypoints(self):
         return len(self.keypoint_fields) > 0
@@ -42,7 +48,8 @@ class Dataset(ABC):
 
 
 class CocoDatasetExport:
-    def __init__(self, ds: Dataset, write_img=True, write_ann_img=False, sample: int = None, n_jobs: int = None):
+    def __init__(self, ds: Dataset, write_img=True, write_ann_img=False, sample: int = None, n_jobs: int = None,
+                 ndigits: int = 3):
         """
         :param write_ann_img: write image with annotated bounding boxes into an extra directory for debugging purposes
         """
@@ -54,7 +61,7 @@ class CocoDatasetExport:
 
         self.ds = ds
         self.sample = sample
-        self.coco_json_exporter = CocoJsonExporter(self.ds, sample)
+        self.coco_json_exporter = CocoJsonExporter(self.ds, sample, ndigits)
 
         self.n_jobs = n_jobs
         if n_jobs is None:
@@ -118,9 +125,11 @@ class CocoDatasetExport:
 
 
 class CocoJsonExporter:
-    def __init__(self, ds: Dataset, sample: Optional[int]):
+    def __init__(self, ds: Dataset, sample: Optional[int], ndigits: int):
         self.ds = ds
         self.sample = check_sample_param(sample)
+
+        self._to_python_type = partial(_to_python_type, ndigits=ndigits)
 
         self.excluded_fields = set(self.ds.keypoint_fields).union(COCO_FIELD_KEYS)
 
@@ -157,44 +166,62 @@ class CocoJsonExporter:
     def _create_img_anns(self, t: Tuple[int, AnnotatedImage]) -> List[Dict]:
         img_id, ann_img = t
 
+        # create artifical unique annotation id
+        # assuming that an image has less than 1000 annotations
+        assert len(ann_img.annotations) < 1000
+
         coco_anns = []
-        for ann_id, ann in enumerate(ann_img.annotations):
-            coco_ann = {
-                "id": _create_ann_id(img_id, ann_id, ann_img),
-                "category": ann.category,  # this isn't strictly required but makes debugging easier
-                "category_id": self.ds.cat_name_to_id[ann.category],
-                "bbox": list(map(_to_python_type, ann.bb.bb_coco)),
-                "area": _to_python_type(ann.bb.size),  # needed by coco eval
-                "image_id": int(img_id),
-                "iscrowd": 0,
-            }
+        for i, ann in enumerate(ann_img.annotations):
+            coco_anns.append(self._create_ann(ann, img_id, ann_id=int(img_id * 1000 + i)))
 
-            if self.ds.has_keypoints():
-                # in coco format convention keypoints have an additional visibility flag
-                # - v=0: not labeled (in which case x=y=0)
-                # - v=1: labeled but not visible
-                # - v=2: labeled and visible
-                # see: http://cocodataset.org/#format-data
-                # this means each keypoint is represented as [x,y,v]
+        if self.ds.relation_fields is not None:
+            id_to_ann = {coco_ann[self.ds.id_field]: coco_ann for coco_ann in coco_anns}
 
-                # frameworks like detectron2 assume that if the dataset has keypoints, this applies to all categories
-                # as a workaround we create v=0 keypoints for categories without keypoints
-                kps = np.zeros(3 * len(self.ds.keypoint_fields))
+            for coco_ann in coco_anns:
+                for rel_field_old, rel_field_new in self.ds.relation_fields.items():
+                    if rel_field_old in coco_ann.keys():
+                        old_id = coco_ann.pop(rel_field_old)
+                        new_id = id_to_ann[old_id]["id"]
+                        coco_ann[rel_field_new] = new_id
 
-                for i, k in enumerate(self.ds.keypoint_fields):
-                    if k in ann:
-                        x, y = getattr(ann, k)
-                        kps[i * 3: i * 3 + 3] = [x, y, 2]
-
-                coco_ann["keypoints"] = kps.tolist()
-
-            # make sure we don't overwrite reserved fields
-            coco_ann.update({
-                k: _to_python_type(v) for k, v in ann.extra_fields.items() if k not in self.excluded_fields
-            })
-
-            coco_anns.append(coco_ann)
         return coco_anns
+
+    def _create_ann(self, ann, img_id, ann_id):
+
+        coco_ann = {
+            "id": ann_id,
+            "image_id": int(img_id),
+            "category": ann.category,  # this isn't strictly required but makes debugging easier
+            "category_id": self.ds.cat_name_to_id[ann.category],
+            "area": self._to_python_type(ann.bb.size),  # needed by coco eval
+            "bbox": list(map(self._to_python_type, ann.bb.bb_coco)),
+            "iscrowd": 0,
+        }
+
+        if self.ds.has_keypoints():
+            # in coco format convention keypoints have an additional visibility flag
+            # - v=0: not labeled (in which case x=y=0)
+            # - v=1: labeled but not visible
+            # - v=2: labeled and visible
+            # see: http://cocodataset.org/#format-data
+            # this means each keypoint is represented as [x,y,v]
+
+            # frameworks like detectron2 assume that if the dataset has keypoints, this applies to all categories
+            # as a workaround we create v=0 keypoints for categories without keypoints
+            kps = np.zeros(3 * len(self.ds.keypoint_fields))
+
+            for i, k in enumerate(self.ds.keypoint_fields):
+                if k in ann:
+                    x, y = getattr(ann, k)
+                    kps[i * 3: i * 3 + 3] = [x, y, 2]
+
+            coco_ann["keypoints"] = self._to_python_type(kps)
+
+        # make sure we don't overwrite reserved fields
+        coco_ann.update({
+            k: self._to_python_type(v) for k, v in ann.extra_fields.items() if k not in self.excluded_fields
+        })
+        return coco_ann
 
     def _create_annotations_dict(self, ann_imgs: List[AnnotatedImage]):
         imgs_anns = [self._create_img_anns((i, ai)) for i, ai in enumerate(tqdm(ann_imgs))]
@@ -207,23 +234,18 @@ def check_sample_param(sample):
     return sample
 
 
-def _create_ann_id(img_id: int, ann_id: int, ann_img: AnnotatedImage):
-    assert len(ann_img.annotations) < 1000
-    # create artifical unique annotation id
-    # assuming that an image has less than 1000 annotations
-    return int(img_id * 1000 + ann_id)
-
-
-def _to_python_type(v):
+def _to_python_type(v, ndigits: int):
     if v is None or isinstance(v, str) or isinstance(v, int):
         return v
     if isinstance(v, float):
-        return int(v) if v.is_integer() else v
+        return int(v) if v.is_integer() else round(v, ndigits)
 
+    if isinstance(v, list):
+        return [_to_python_type(x, ndigits) for x in v]
     if isinstance(v, np.ndarray):
-        return v.tolist()
-    if isinstance(v, np.number):
-        return _to_python_type(v.item())
+        return v.round(ndigits).tolist()
+    # if isinstance(v, np.number):
+    #    return _to_python_type(v.item(), ndigits)
 
     raise ValueError(f"Unknown type for {v}: {type(v)}")
 

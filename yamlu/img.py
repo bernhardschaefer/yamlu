@@ -257,10 +257,7 @@ class AnnotatedImage:
         return img_path
 
     def filter(self, category: str, *other_categories) -> List[Annotation]:
-        categories = [category, *other_categories]
-        if isinstance(categories, str):
-            categories = [categories]
-        return [a for a in self.annotations if a.category in categories]
+        return [a for a in self.annotations if a.category in {category, *other_categories}]
 
     def filter_substr(self, substr: str):
         return [a for a in self.annotations if substr in a.category]
@@ -282,7 +279,7 @@ class AnnotatedImage:
         return s
 
 
-def compute_colors_for_annotations(annotations: List[Annotation], cmap='jet'):
+def compute_colors_for_annotations(annotations: List[Annotation], cmap='Dark2'):
     categories = set(a.category for a in annotations)
     cat_to_id = dict((c, i) for i, c in enumerate(categories))
     return compute_colors(annotations, cat_to_id, cmap)
@@ -402,13 +399,13 @@ def plot_img_paths(img_paths: Union[List[Path], List[str]], ncols=4, img_size=(5
     plot_imgs(imgs, ncols=ncols, img_size=img_size, titles=[Path(p).name for p in img_paths])
 
 
-def read_img(img_path: Union[Path, str]):
+def read_img(img_path: Union[Path, str]) -> Image.Image:
     img = Image.open(img_path)
     return exif_transpose(img)
 
 
-# inspired from detectron2
-def exif_transpose(image):
+# same as ImageOps.exif_transpose, but does not copy the image, which avoids Image.load()
+def exif_transpose(image) -> Image.Image:
     """
     If an image has an EXIF Orientation tag, return a new image that is
     transposed accordingly. Otherwise, return the image.

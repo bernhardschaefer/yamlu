@@ -2,8 +2,10 @@
 
 import numpy as np
 
-
 # https://medium.com/@venuktan/vectorized-intersection-over-union-iou-in-numpy-and-tensor-flow-4fa16231b63d
+import torch
+
+
 def iou_matrix(bb_tlbr1: np.ndarray, bb_tlbr2: np.ndarray):
     """Pairwise vectorized iou matrix calculation for two arrays of bounding boxes with t,l,b,r convention
     :param bb_tlbr1 shape (m,4)
@@ -65,3 +67,19 @@ def bbs_distances(bboxes1: np.ndarray, bboxes2: np.ndarray):
     inner_height = np.maximum(0, bb_outer_heights - bbs1_heights - bbs2_heights.T)
     min_distance = np.sqrt(inner_width ** 2 + inner_height ** 2)
     return min_distance
+
+
+def pts_boxes_distance(pts: torch.Tensor, boxes_ltrb: torch.Tensor):
+    """Distance of a point to a bounding box rectangle.
+    Based on Stackoverflow: https://stackoverflow.com/a/18157551/1501100
+    NOTE: This is an exact solution that leverages the fact that the bounding boxes are axis-aligned
+    """
+    assert pts.dim() == 2
+    assert pts.shape[1] == 2
+
+    xs, ys = [p.view(-1, 1) for p in pts.t()]
+    x_min, y_min, x_max, y_max = [p.view(1, -1) for p in boxes_ltrb.t()]
+    dx = torch.clamp(torch.max(x_min - xs, xs - x_max), 0)
+    dy = torch.clamp(torch.max(y_min - ys, ys - y_max), 0)
+    ds = torch.sqrt(dx ** 2 + dy ** 2)
+    return ds

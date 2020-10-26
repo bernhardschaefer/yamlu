@@ -12,7 +12,7 @@ from joblib import delayed, Parallel
 from joblib.externals import loky
 from tqdm import tqdm
 
-from yamlu.img import AnnotatedImage
+from yamlu.img import AnnotatedImage, Annotation
 
 _logger = logging.getLogger(__name__)
 
@@ -68,9 +68,8 @@ class CocoDatasetExport:
             self.n_jobs = min([loky.backend.context.cpu_count() - 2, 16, max(ds.split_n_imgs.values())])
         _logger.info("Initialized %s with %d jobs", self.__class__.__name__, self.n_jobs)
 
-    def dump_dataset(self):
-        for split in self.ds.splits:
-            self.dump_split(split)
+    def dump_dataset(self) -> Dict[str, List[AnnotatedImage]]:
+        return {split: self.dump_split(split) for split in self.ds.splits}
 
     def dump_split(self, split: str):
         _logger.info("%s: starting split=%s, write_img=%s, write_ann_img=%s, sample=%s", self.ds.name, split,
@@ -95,6 +94,8 @@ class CocoDatasetExport:
         ann_imgs = parallel(delayed(self.dump_image)(idx, split, split_path, ann_imgs_path) for idx in tqdm(idxs))
 
         self.coco_json_exporter.dump_split_coco_json(ann_imgs, split)
+
+        return ann_imgs
 
     def dump_image(self, idx, split, split_path, ann_imgs_path):
         ann_img = self.ds.get_split_ann_img(split, idx)
@@ -131,7 +132,7 @@ class CocoJsonExporter:
 
         self._to_python_type = partial(_to_python_type, ndigits=ndigits)
 
-        self.excluded_fields = set(self.ds.keypoint_fields).union(COCO_FIELD_KEYS)
+        self.excluded_fields = {*self.ds.keypoint_fields, *COCO_FIELD_KEYS, *self.ds.relation_fields.values()}
 
     def dump_split_coco_json(self, ann_imgs: List[AnnotatedImage], split: str):
         indent = None if self.sample is None else 2
@@ -172,21 +173,21 @@ class CocoJsonExporter:
 
         coco_anns = []
         for i, ann in enumerate(ann_img.annotations):
-            coco_anns.append(self._create_ann(ann, img_id, ann_id=int(img_id * 1000 + i)))
+            coco_anns.append(self._create_coco_ann(ann, img_id, ann_id=int(img_id * 1000 + i)))
 
         if self.ds.relation_fields is not None:
             id_to_ann = {coco_ann[self.ds.id_field]: coco_ann for coco_ann in coco_anns}
 
             for coco_ann in coco_anns:
-                for rel_field_old, rel_field_new in self.ds.relation_fields.items():
-                    if rel_field_old in coco_ann.keys():
-                        old_id = coco_ann.pop(rel_field_old)
-                        new_id = id_to_ann[old_id]["id"]
-                        coco_ann[rel_field_new] = new_id
+                for field_name in self.ds.relation_fields.values():
+                    if field_name in coco_ann.keys():
+                        ds_ann_id = coco_ann.pop(field_name)
+                        rel_coco_ann_id = id_to_ann[ds_ann_id]["id"]
+                        coco_ann[field_name] = rel_coco_ann_id
 
         return coco_anns
 
-    def _create_ann(self, ann, img_id, ann_id):
+    def _create_coco_ann(self, ann, img_id, ann_id) -> Dict:
 
         coco_ann = {
             "id": ann_id,
@@ -217,6 +218,14 @@ class CocoJsonExporter:
 
             coco_ann["keypoints"] = self._to_python_type(kps)
 
+        for old_name, new_name in self.ds.relation_fields.items():
+            if old_name in ann:
+                obj = getattr(ann, old_name)
+                # relationship fields can point to other Annotation objects
+                # extract the id attribute of the dataset in that case
+                obj_id = getattr(obj, self.ds.id_field) if isinstance(obj, Annotation) else obj
+                coco_ann[new_name] = obj_id
+
         # make sure we don't overwrite reserved fields
         coco_ann.update({
             k: self._to_python_type(v) for k, v in ann.extra_fields.items() if k not in self.excluded_fields
@@ -244,8 +253,8 @@ def _to_python_type(v, ndigits: int):
         return [_to_python_type(x, ndigits) for x in v]
     if isinstance(v, np.ndarray):
         return v.round(ndigits).tolist()
-    # if isinstance(v, np.number):
-    #    return _to_python_type(v.item(), ndigits)
+    if isinstance(v, np.number):
+        return _to_python_type(v.item(), ndigits)
 
     raise ValueError(f"Unknown type for {v}: {type(v)}")
 

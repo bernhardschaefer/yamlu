@@ -215,12 +215,17 @@ class Annotation:
             return super().__getattribute__(name)
         return self._fields[name]
 
+    def __delattr__(self, name: str):
+        if name.startswith("_"):
+            return super().__delattr__(name)
+        del self._fields[name]
+
     def __contains__(self, key):
         return key in self._fields
 
     def __repr__(self):
-        # only get fields that are not of type BoundingBox to prevent potentially infinite recursion
-        fields_str = ", ".join(f"{k}={v}" for k, v in self.extra_fields.items() if not isinstance(v, BoundingBox))
+        # only get fields that are not of type Annotation to prevent potentially infinite recursion
+        fields_str = ", ".join(f"{k}={v}" for k, v in self.extra_fields.items() if not isinstance(v, Annotation))
         return f"{self.__class__.__name__}(category='{self.category}', bb={self.bb}, {fields_str})"
 
 

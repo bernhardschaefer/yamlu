@@ -2,8 +2,9 @@ import math
 import unittest
 
 import numpy as np
+import torch
 
-from yamlu.bb import iou_matrix, bbs_distances, iou_vector
+from yamlu.bb import iou_matrix, bbs_distances, iou_vector, pts_boxes_distance
 
 
 class TestBoundingBoxes(unittest.TestCase):
@@ -82,6 +83,23 @@ class TestBoundingBoxes(unittest.TestCase):
         distances = bbs_distances(bbs1, bbs2)
         assert distances.shape == (1, 1)
         assert distances[0, 0] == 0
+
+    def test_pts_boxes_distance(self):
+        pts = torch.tensor([[0, 0], [15, 15]], dtype=torch.int32)
+
+        boxes_ltrb = torch.tensor([
+            [10, 10, 20, 20],
+            [0, 0, 10, 10]
+        ], dtype=torch.float32)
+
+        ds = pts_boxes_distance(pts, boxes_ltrb, zero_dist_pt_within_box=True)
+        assert ds[0, 0] == math.sqrt(200)
+        assert ds[1, 0] == 0
+        print(ds[:, 0])
+
+        ds = pts_boxes_distance(pts, boxes_ltrb, zero_dist_pt_within_box=False)
+        assert ds[1, 0] == 5
+        print(ds[:, 0])
 
 
 if __name__ == "__main__":

@@ -1,4 +1,5 @@
 """Bounding Box methods"""
+import functools
 
 import numpy as np
 
@@ -69,17 +70,30 @@ def bbs_distances(bboxes1: np.ndarray, bboxes2: np.ndarray):
     return min_distance
 
 
-def pts_boxes_distance(pts: torch.Tensor, boxes_ltrb: torch.Tensor):
-    """Distance of a point to a bounding box rectangle.
+def pts_boxes_distance(pts: torch.Tensor, boxes_ltrb: torch.Tensor, zero_dist_pt_within_box: bool = True):
+    """Distance of a point to a bounding box rectangle
     Based on Stackoverflow: https://stackoverflow.com/a/18157551/1501100
     NOTE: This is an exact solution that leverages the fact that the bounding boxes are axis-aligned
+    :param zero_dist_pt_within_box: return zero distance for point in a box (True) or min. distance to all sides (False)
     """
     assert pts.dim() == 2
     assert pts.shape[1] == 2
 
     xs, ys = [p.view(-1, 1) for p in pts.t()]
     x_min, y_min, x_max, y_max = [p.view(1, -1) for p in boxes_ltrb.t()]
-    dx = torch.clamp(torch.max(x_min - xs, xs - x_max), 0)
-    dy = torch.clamp(torch.max(y_min - ys, ys - y_max), 0)
+
+    xmin_d = x_min - xs
+    xmax_d = xs - x_max
+    ymin_d = y_min - ys
+    ymax_d = ys - y_max
+
+    dx = torch.clamp(torch.max(xmin_d, xmax_d), 0)
+    dy = torch.clamp(torch.max(ymin_d, ymax_d), 0)
     ds = torch.sqrt(dx ** 2 + dy ** 2)
+
+    pts_in_box_mask = ds == 0
+    if not zero_dist_pt_within_box and pts_in_box_mask.any():
+        d_min = functools.reduce(torch.min, [xmin_d.abs(), xmax_d.abs(), ymin_d.abs(), ymax_d.abs()])
+        ds[pts_in_box_mask] = d_min[pts_in_box_mask]
+
     return ds

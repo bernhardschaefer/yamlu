@@ -12,8 +12,6 @@ def white_to_transparency(img: Image.Image, thresh=255) -> Image.Image:
     :param thresh: pixels where all RGB values are higher or equal than this threshold are considered white
     """
     # FIXME change implementation so that it selects white pixels and only modifies their alpha
-    if img.mode == "RGBA":
-        return img
     # noinspection PyTypeChecker
     x = np.asarray(img.convert('RGBA')).copy()
     # inspired by https://stackoverflow.com/a/54148416

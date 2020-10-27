@@ -223,8 +223,8 @@ class Annotation:
     def set(self, name: str, value: Any):
         setattr(self, name, value)
 
-    def get(self, name: str, default=None):
-        return getattr(self, name, default)
+    def get(self, name: str):
+        return self._fields[name]
 
     def __contains__(self, key):
         return key in self._fields

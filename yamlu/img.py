@@ -220,6 +220,12 @@ class Annotation:
             return super().__delattr__(name)
         del self._fields[name]
 
+    def set(self, name: str, value: Any):
+        setattr(self, name, value)
+
+    def get(self, name: str, default=None):
+        return getattr(self, name, default)
+
     def __contains__(self, key):
         return key in self._fields
 

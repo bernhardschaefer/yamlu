@@ -301,7 +301,8 @@ def compute_colors(annotations: List[Annotation], cat_to_id: Dict[str, int], cma
     return [scalarMap.to_rgba(c) for c in cat_ids]
 
 
-def plot_anns(ax, annotations: List[Annotation], ann_colors=None, with_index=False, digits=2, min_score: float = 0.0):
+def plot_anns(ax, annotations: List[Annotation], ann_colors=None, with_index=False, digits: int = 1,
+              min_score: float = 0.0):
     if len(annotations) == 0:
         _logger.warning("plot_anns: passed empty annotations list")
         return
@@ -314,8 +315,10 @@ def plot_anns(ax, annotations: List[Annotation], ann_colors=None, with_index=Fal
     annotations = [a for a in annotations if "score" not in a or a.score >= min_score]
 
     # very rough estimate
-    fontsize = max(ax.figure.get_size_inches()[0], 10)
-    lw = fontsize / 10
+    figsize = ax.figure.get_size_inches()
+    larger_size = max(figsize)
+    fontsize = max(larger_size * .7, 8)
+    lw = max(larger_size * .1, 1)
 
     for i, ann, color in zip(range(len(annotations)), annotations, ann_colors):
         patch = mpatches.Rectangle(*ann.bb.xy_w_h, fill=True, facecolor=color, edgecolor=color, lw=0, alpha=.05)

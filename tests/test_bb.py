@@ -23,12 +23,12 @@ class TestBoundingBoxes(unittest.TestCase):
 
     def test_iou_matrix(self):
         bbs1 = np.array([
-            [10, 10, 19, 19],
-            [10, 10, 29, 29]
+            [10, 10, 20, 20],
+            [10, 10, 30, 30]
         ])
         bbs2 = np.array([
-            [10, 10, 19, 19],
-            [0, 0, 19, 19],
+            [10, 10, 20, 20],
+            [0, 0, 20, 20],
             [50, 50, 100, 100]
         ])
         ious = iou_matrix(bbs1, bbs2)
@@ -42,12 +42,12 @@ class TestBoundingBoxes(unittest.TestCase):
 
     def test_iou_vector(self):
         bbs1 = np.array([
-            [10, 10, 19, 19],
-            [0, 0, 39, 39]
+            [10, 10, 20, 20],
+            [0, 0, 40, 40]
         ])
         bbs2 = np.array([
-            [10, 10, 19, 19],
-            [0, 0, 19, 19],
+            [10, 10, 20, 20],
+            [0, 0, 20, 20],
         ])
         ious = iou_vector(bbs1, bbs2)
         assert ious.shape == (2,)
@@ -56,12 +56,12 @@ class TestBoundingBoxes(unittest.TestCase):
 
     def test_bbs_distances(self):
         bbs1 = np.array([
-            [10, 10, 19, 19],
-            [10, 10, 29, 29]
+            [10, 10, 20, 20],
+            [10, 10, 30, 30]
         ])
         bbs2 = np.array([
-            [10, 10, 19, 19],
-            [0, 0, 19, 19],
+            [10, 10, 20, 20],
+            [0, 0, 20, 20],
             [50, 50, 100, 100]
         ])
         distances = bbs_distances(bbs1, bbs2)
@@ -75,10 +75,10 @@ class TestBoundingBoxes(unittest.TestCase):
 
     def test_bbs_distances_intersect(self):
         bbs1 = np.array([
-            [10, 0, 19, 49]
+            [10, 0, 20, 50]
         ])
         bbs2 = np.array([
-            [0, 10, 14, 29]
+            [0, 10, 14, 30]
         ])
         distances = bbs_distances(bbs1, bbs2)
         assert distances.shape == (1, 1)

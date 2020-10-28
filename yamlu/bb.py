@@ -23,9 +23,9 @@ def iou_matrix(bb_tlbr1: np.ndarray, bb_tlbr2: np.ndarray):
     b_min = np.minimum(b1, np.transpose(b2))
     r_min = np.minimum(r1, np.transpose(r2))
 
-    interArea = np.maximum((b_min - t_max + 1), 0) * np.maximum((r_min - l_max + 1), 0)
-    boxAArea = (b1 - t1 + 1) * (r1 - l1 + 1)
-    boxBArea = (b2 - t2 + 1) * (r2 - l2 + 1)
+    interArea = np.maximum((b_min - t_max), 0) * np.maximum((r_min - l_max), 0)
+    boxAArea = (b1 - t1) * (r1 - l1)
+    boxBArea = (b2 - t2) * (r2 - l2)
     iou = interArea / (boxAArea + np.transpose(boxBArea) - interArea)
     return iou
 
@@ -55,14 +55,14 @@ def bbs_distances(bboxes1: np.ndarray, bboxes2: np.ndarray):
     b_max = np.maximum(b1, b2.T)
     r_max = np.maximum(r1, r2.T)
 
-    bb_outer_widths = r_max - l_min + 1
-    bb_outer_heights = b_max - t_min + 1
+    bb_outer_widths = r_max - l_min
+    bb_outer_heights = b_max - t_min
 
-    bbs1_widths = r1 - l1 + 1
-    bbs1_heights = b1 - t1 + 1
+    bbs1_widths = r1 - l1
+    bbs1_heights = b1 - t1
 
-    bbs2_widths = r2 - l2 + 1
-    bbs2_heights = b2 - t2 + 1
+    bbs2_widths = r2 - l2
+    bbs2_heights = b2 - t2
 
     inner_width = np.maximum(0, bb_outer_widths - bbs1_widths - bbs2_widths.T)
     inner_height = np.maximum(0, bb_outer_heights - bbs1_heights - bbs2_heights.T)

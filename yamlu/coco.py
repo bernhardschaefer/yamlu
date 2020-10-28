@@ -194,7 +194,7 @@ class CocoJsonExporter:
             "image_id": int(img_id),
             "category": ann.category,  # this isn't strictly required but makes debugging easier
             "category_id": self.ds.cat_name_to_id[ann.category],
-            "area": self._to_python_type(ann.bb.size),  # needed by coco eval
+            "area": self._to_python_type(ann.bb.area),  # needed by coco eval
             "bbox": list(map(self._to_python_type, ann.bb.bb_coco)),
             "iscrowd": 0,
         }

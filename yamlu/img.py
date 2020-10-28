@@ -15,15 +15,15 @@ import torch
 from PIL import Image
 from matplotlib import patheffects
 
-from yamlu.bb import iou_vector
-
 _logger = logging.getLogger(__name__)
 
 
 class BoundingBox:
     """
-    This Bounding Box implementation assumes the coordinates to be inclusive.
-    This means that e.g. the width of the bbox is right-left+1.
+    This Bounding Box implementation assumes the coordinates in between pixels.
+    This means that e.g. the width of the bbox is right-left.
+    So a bounding box that contains the top-left pixel would be BoundingBox(0,0,1,1).
+    This is in contrast to the convention where BoundingBox(0,0,0,0) corresponds to first pixel, and w = r-l+1
     For some background see: https://github.com/facebookresearch/Detectron/blob/master/detectron/utils/boxes.py#L23
     """
 
@@ -40,6 +40,11 @@ class BoundingBox:
                 _logger.debug(msg)
             else:
                 raise ValueError(msg)
+
+    def __eq__(self, other):
+        if not isinstance(other, BoundingBox):
+            return False
+        return self.tlbr == other.tlbr
 
     def __repr__(self):
         return f"BoundingBox(t={self.t:.2f},l={self.l:.2f},b={self.b:.2f},r={self.r:.2f})"
@@ -81,15 +86,14 @@ class BoundingBox:
 
     @property
     def w(self):
-        # bounding boxes are inclusive, which e.g. means l=10 and r=11 is 2px width
-        return self.r - self.l + 1
+        return self.r - self.l
 
     @property
     def h(self):
-        return self.b - self.t + 1
+        return self.b - self.t
 
     @property
-    def size(self):
+    def area(self):
         return self.w * self.h
 
     @property
@@ -126,10 +130,19 @@ class BoundingBox:
         t, l, b, r = self.tlbr
         return t >= bb.t and l >= bb.l and b <= bb.b and r <= bb.r
 
-    def iou(self, bb):
-        bbs1 = np.array(self.tlbr).reshape(1, -1)
-        bbs2 = np.array(bb.tlbr).reshape(1, -1)
-        return iou_vector(bbs1, bbs2).item()
+    def iou(self, bb) -> float:
+        return self.intersection(bb).area / self.union(bb).area
+
+    def intersection(self, bb):
+        t = max(self.t, bb.t)
+        l = max(self.l, bb.l)
+        b = min(self.b, bb.b)
+        r = min(self.r, bb.r)
+        if b < t:
+            b = t
+        if r < l:
+            r = l
+        return BoundingBox(t=t, l=l, b=b, r=r, allow_neg_coord=self.allow_neg_coord)
 
     def union(self, bb):
         return BoundingBox(t=min(self.t, bb.t), l=min(self.l, bb.l), b=max(self.b, bb.b), r=max(self.r, bb.r),
@@ -171,9 +184,9 @@ class BoundingBox:
     def rot90(self, img_h) -> "BoundingBox":
         return BoundingBox(
             t=self.l,
-            l=img_h - self.b - 1,
+            l=img_h - self.b,
             b=self.r,
-            r=img_h - self.t - 1
+            r=img_h - self.t
         )
 
 
@@ -201,7 +214,7 @@ class Annotation:
         img = np.asarray(img)
         t, l, b, r = self.bb.tlbr
         t, l = math.floor(t), math.floor(l)
-        b, r = math.ceil(b) + 1, math.ceil(r) + 1
+        b, r = math.ceil(b), math.ceil(r)
         return Image.fromarray(img[t:b, l:r, ...])
 
     def __setattr__(self, name: str, val: Any) -> None:

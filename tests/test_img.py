@@ -1,5 +1,7 @@
 import unittest
 
+import numpy as np
+
 from yamlu.img import Annotation, BoundingBox
 
 
@@ -19,6 +21,13 @@ class TestBoundingBox(unittest.TestCase):
 
         b3 = BoundingBox(10, 10, 15, 15)
         assert b1.intersection(b3).area == 0.
+
+    def test_from_points(self):
+        pts = np.array([
+            [0, 2],
+            [1, 0]
+        ])
+        assert BoundingBox.from_points(pts) == BoundingBox(0, 0, 3, 2)
 
     def test_iou(self):
         b1 = BoundingBox(0, 0, 10, 10)

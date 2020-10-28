@@ -74,11 +74,28 @@ class BoundingBox:
 
     @classmethod
     def from_points(cls, pts: np.ndarray, allow_neg_coord=False):
+        """
+        :param pts: xy pts array assuming top-left origin
+        :param allow_neg_coord: allow negative coordinates outside of image
+        """
         assert pts.ndim == 2
         assert pts.shape[1] == 2
         l, t = pts.min(axis=0)
-        r, b = pts.max(axis=0)
+        r, b = pts.max(axis=0) + 1  # +1 to convert from pixel to coordinate-based representation
         return BoundingBox(t, l, b, r, allow_neg_coord)
+
+    @classmethod
+    def from_mask(cls, mask: np.ndarray, assert_any=False):
+        """
+        :param mask: 2-d binary mask
+        :param assert_any: assert that at least one mask entry is True
+        """
+        assert mask.ndim == 2
+        ys, xs = np.where(mask)
+        if assert_any:
+            assert len(ys) > 0, "mask has no positive entries"
+        pts = np.stack([xs, ys], axis=1)
+        return BoundingBox.from_points(pts), (ys, xs)
 
     @property
     def tlbr(self):

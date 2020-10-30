@@ -44,9 +44,7 @@ def iou_vector(bb_tlbr1: np.ndarray, bb_tlbr2: np.ndarray):
 # inspired by:
 # https://gamedev.stackexchange.com/questions/154036/efficient-minimum-distance-between-two-axis-aligned-squares
 def bbs_distances(bboxes1: np.ndarray, bboxes2: np.ndarray):
-    """Vectorized axis-aligned bounding box distance calculation between two arrays of t,l,b,r bounding boxes.
-    Assumes inclusive bb coordinates (this is why e.g. width is calc. as r-l+1).
-    """
+    """Vectorized axis-aligned bounding box distance calculation between two arrays of t,l,b,r bounding boxes"""
     t1, l1, b1, r1 = np.split(bboxes1, 4, axis=1)
     t2, l2, b2, r2 = np.split(bboxes2, 4, axis=1)
 

@@ -15,6 +15,8 @@ import torch
 from PIL import Image
 from matplotlib import patheffects
 
+from yamlu.bb import bbs_distances
+
 _logger = logging.getLogger(__name__)
 
 
@@ -150,6 +152,11 @@ class BoundingBox:
     def iou(self, bb) -> float:
         return self.intersection(bb).area / self.union(bb).area
 
+    def distance(self, bb) -> float:
+        bbs1 = np.array(self.tlbr).reshape(1, -1)
+        bbs2 = np.array(bb.tlbr).reshape(1, -1)
+        return bbs_distances(bbs1, bbs2).item()
+
     def intersection(self, bb):
         t = max(self.t, bb.t)
         l = max(self.l, bb.l)
@@ -165,8 +172,8 @@ class BoundingBox:
         return BoundingBox(t=min(self.t, bb.t), l=min(self.l, bb.l), b=max(self.b, bb.b), r=max(self.r, bb.r),
                            allow_neg_coord=self.allow_neg_coord)
 
-    def pad(self, pad) -> "BoundingBox":
-        return BoundingBox(self.t - pad, self.l - pad, self.b + pad, self.r + pad, allow_neg_coord=self.allow_neg_coord)
+    def pad(self, pad, allow_neg_coord=False) -> "BoundingBox":
+        return BoundingBox(self.t - pad, self.l - pad, self.b + pad, self.r + pad, allow_neg_coord=allow_neg_coord)
 
     def pad_min_size(self, w_min, h_min):
         w_new = max(self.w, w_min)
@@ -289,11 +296,11 @@ class AnnotatedImage:
     def save(self, imgs_path: Path):
         self.img.save(imgs_path / self.filename)
 
-    def save_with_anns(self, directory: Path):
-        self.plot()
-        img_name = Path(self.filename).stem + "_annotated.png"
-        img_path = directory / img_name
-        plt.savefig(str(img_path))
+    def save_with_anns(self, directory: Path, figsize=None, suffix="_bb", jpg_quality=75):
+        self.plot(figsize=figsize)
+        directory.mkdir(exist_ok=True, parents=True)
+        img_path = directory / f"{self.fname_without_suffix}{suffix}.jpg"
+        plt.savefig(str(img_path), pil_kwargs={"quality": jpg_quality})
         plt.close()
         return img_path
 
@@ -313,6 +320,10 @@ class AnnotatedImage:
     def size(self):
         return self.width, self.height
 
+    @property
+    def fname_without_suffix(self) -> str:
+        return Path(self.filename).stem
+
     def __repr__(self):
         n_anns = len(self.annotations)
         cat_cnt = Counter(a.category for a in self.annotations)
@@ -320,7 +331,7 @@ class AnnotatedImage:
         return s
 
 
-def compute_colors_for_annotations(annotations: List[Annotation], cmap='Dark2'):
+def compute_colors_for_annotations(annotations: List[Annotation], cmap='jet'):  # Dark2, Accent, jet
     categories = set(a.category for a in annotations)
     cat_to_id = dict((c, i) for i, c in enumerate(categories))
     return compute_colors(annotations, cat_to_id, cmap)

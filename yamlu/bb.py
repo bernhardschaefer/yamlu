@@ -89,7 +89,7 @@ def pts_boxes_distance(pts: torch.Tensor, boxes_ltrb: torch.Tensor, zero_dist_pt
     dy = torch.clamp(torch.max(ymin_d, ymax_d), 0)
     ds = torch.sqrt(dx ** 2 + dy ** 2)
 
-    pts_in_box_mask = ds == 0
+    pts_in_box_mask = (ds == 0)
     if not zero_dist_pt_within_box and pts_in_box_mask.any():
         d_min = functools.reduce(torch.min, [xmin_d.abs(), xmax_d.abs(), ymin_d.abs(), ymax_d.abs()])
         ds[pts_in_box_mask] = d_min[pts_in_box_mask]

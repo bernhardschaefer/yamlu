@@ -1,3 +1,4 @@
+import copy
 import logging
 import math
 from collections import Counter
@@ -9,6 +10,7 @@ import matplotlib as mpl
 import matplotlib.cm as cmx
 import matplotlib.colors as colors
 import matplotlib.patches as mpatches
+import matplotlib.path as mpath
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -285,6 +287,18 @@ class AnnotatedImage:
         img = read_img(img_path)
         return cls(img_path.name, width=img.width, height=img.height, annotations=annotations, img=img)
 
+    def copy(self) -> "AnnotatedImage":
+        """
+        Creates a copy of the AnnotatedImage, but without copying the image itself
+        """
+        return AnnotatedImage(
+            filename=self.filename,
+            width=self.width,
+            height=self.height,
+            annotations=copy.deepcopy(self.annotations),
+            img=self.img
+        )
+
     def plot(self, figsize=None, with_bb=True, with_index=False, axis_opt="off", **imshow_kwargs):
         assert self.img is not None, f"{self}: missing img attribute!"
         plot_img(self.img, figsize=figsize, axis_opt=axis_opt, **imshow_kwargs)
@@ -305,6 +319,7 @@ class AnnotatedImage:
         return img_path
 
     def filter(self, category: str, *other_categories) -> List[Annotation]:
+        assert isinstance(category, str), f"Wrong type for category {category}: {type(category)}"
         return [a for a in self.annotations if a.category in {category, *other_categories}]
 
     def filter_substr(self, substr: str):
@@ -386,6 +401,42 @@ def plot_anns(ax, annotations: List[Annotation], ann_colors=None, with_index=Fal
             ax.scatter(*ann.head, marker=">", s=50, alpha=.5, color="green", edgecolor="black", linewidth=1)
         if "tail" in ann:
             ax.scatter(*ann.tail, marker="o", s=50, alpha=.5, color="green", edgecolor="black", linewidth=1)
+        if "next" in ann:
+            draw_connection(ann, ax)
+
+
+def draw_connection(ann: Annotation, ax, lw_conn=4, color=(220 / 255., 20 / 255., 60 / 255.),
+                    ls="-", head_length=10, head_width=4, alpha=.5):
+    vertices = [ann.next.bb.center]
+    codes = [mpath.Path.MOVETO]
+
+    if "head" in ann:
+        codes.append(mpath.Path.LINETO)
+        vertices.insert(0, ann.head)
+
+    if "tail" in ann:
+        codes.append(mpath.Path.LINETO)
+        vertices.insert(0, ann.tail)
+
+    if "prev" in ann:
+        vertices.insert(0, ann.prev.bb.center)
+        codes.append(mpath.Path.LINETO)
+
+    path = mpath.Path(vertices, codes)
+
+    arw_style = mpatches.ArrowStyle.CurveFilledB(head_width=head_width, head_length=head_length)
+    # noinspection PyTypeChecker
+    p = mpatches.FancyArrowPatch(
+        path=path,
+        arrowstyle=arw_style,
+        linewidth=lw_conn,
+        linestyle=ls,
+        color=color,
+        alpha=alpha,
+        # path_effects=[patheffects.Stroke(linewidth=2, foreground='BLACK', alpha=alpha), patheffects.Normal()]
+    )
+    # TODO capstyle and joinstyle https://matplotlib.org/3.1.0/gallery/lines_bars_and_markers/joinstyle.html
+    ax.add_patch(p)
 
 
 def plot_img(img: Union[np.ndarray, Image.Image, torch.Tensor], cmap="gray", axis_opt="off", figsize=None,

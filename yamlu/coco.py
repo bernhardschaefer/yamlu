@@ -18,10 +18,20 @@ _logger = logging.getLogger(__name__)
 
 COCO_FIELD_KEYS = {"id", "category_id", "bbox", "image_id", "iscrowd", "keypoints"}
 
+COCO_ANN_ID_FIELD = "coco_ann_id"
+
 
 class Dataset(ABC):
     def __init__(self, name: str, dataset_path: Path, split_n_imgs: Dict[str, int], coco_categories: List[Dict],
-                 keypoint_fields: List[str], id_field: str = None, relation_fields: Dict[str, str] = None):
+                 keypoint_fields: List[str], relation_fields: List[str]):
+        """
+        :param name: name of the dataset
+        :param dataset_path: root of the dataset where images and coco json annotations are saved to
+        :param split_n_imgs: number of imgs per split (e.g. {"train": 100, "valid": 5, "test": 5})
+        :param coco_categories: coco categories with name, supercategory and id fields
+        :param keypoint_fields: name of keypoint fields
+        :param relation_fields: relation fields, i.e. name of Annotation fields that point to other Annotation objects
+        """
         self.name = name
         self.dataset_path = dataset_path
 
@@ -32,12 +42,8 @@ class Dataset(ABC):
         self.cat_name_to_id = {c['name']: c['id'] for c in self.coco_categories}
         self.cat_id_to_name = {c['id']: c['name'] for c in self.coco_categories}
 
-        # TODO document these fields and what they do
         self.keypoint_fields = keypoint_fields
-        self.id_field = id_field
         self.relation_fields = relation_fields
-        if self.relation_fields is not None:
-            assert self.id_field is not None, "id field required if the dataset has relations"
 
     def has_keypoints(self):
         return len(self.keypoint_fields) > 0
@@ -132,7 +138,7 @@ class CocoJsonExporter:
 
         self._to_python_type = partial(_to_python_type, ndigits=ndigits)
 
-        self.excluded_fields = {*self.ds.keypoint_fields, *COCO_FIELD_KEYS, *self.ds.relation_fields.values()}
+        self.excluded_fields = {COCO_ANN_ID_FIELD, *self.ds.keypoint_fields, *COCO_FIELD_KEYS, *self.ds.relation_fields}
 
     def dump_split_coco_json(self, ann_imgs: List[AnnotatedImage], split: str):
         indent = None if self.sample is None else 2
@@ -171,26 +177,17 @@ class CocoJsonExporter:
         # assuming that an image has less than 1000 annotations
         assert len(ann_img.annotations) < 1000
 
-        coco_anns = []
+        # set id field first so that they can be used for relation mappings
         for i, ann in enumerate(ann_img.annotations):
-            coco_anns.append(self._create_coco_ann(ann, img_id, ann_id=int(img_id * 1000 + i)))
+            ann.set(COCO_ANN_ID_FIELD, int(img_id * 1000 + i))
 
-        if self.ds.relation_fields is not None:
-            id_to_ann = {coco_ann[self.ds.id_field]: coco_ann for coco_ann in coco_anns}
-
-            for coco_ann in coco_anns:
-                for field_name in self.ds.relation_fields.values():
-                    if field_name in coco_ann.keys():
-                        ds_ann_id = coco_ann.pop(field_name)
-                        rel_coco_ann_id = id_to_ann[ds_ann_id]["id"]
-                        coco_ann[field_name] = rel_coco_ann_id
-
+        coco_anns = [self._create_coco_ann(ann, img_id) for ann in ann_img.annotations]
         return coco_anns
 
-    def _create_coco_ann(self, ann, img_id, ann_id) -> Dict:
+    def _create_coco_ann(self, ann: Annotation, img_id: int) -> Dict:
 
         coco_ann = {
-            "id": ann_id,
+            "id": ann.get(COCO_ANN_ID_FIELD),
             "image_id": int(img_id),
             "category": ann.category,  # this isn't strictly required but makes debugging easier
             "category_id": self.ds.cat_name_to_id[ann.category],
@@ -218,17 +215,16 @@ class CocoJsonExporter:
 
             coco_ann["keypoints"] = self._to_python_type(kps)
 
-        for old_name, new_name in self.ds.relation_fields.items():
-            if old_name in ann:
-                obj = getattr(ann, old_name)
-                # relationship fields can point to other Annotation objects
-                # extract the id attribute of the dataset in that case
-                obj_id = getattr(obj, self.ds.id_field) if isinstance(obj, Annotation) else obj
-                coco_ann[new_name] = obj_id
+        for rel_name in self.ds.relation_fields:
+            if rel_name in ann:
+                # relationship fields point to other Annotation objects
+                rel_ann = ann.get(rel_name)
+                coco_ann[rel_name] = rel_ann.get(COCO_ANN_ID_FIELD)
 
         # make sure we don't overwrite reserved fields
         coco_ann.update({
-            k: self._to_python_type(v) for k, v in ann.extra_fields.items() if k not in self.excluded_fields
+            k: self._to_python_type(v) for k, v in ann.extra_fields.items() if
+            k not in self.excluded_fields and not isinstance(v, Annotation)
         })
         return coco_ann
 

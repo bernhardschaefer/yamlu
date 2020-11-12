@@ -377,8 +377,8 @@ def plot_anns(ax, annotations: List[Annotation], ann_colors=None, with_index=Fal
     # very rough estimate
     figsize = ax.figure.get_size_inches()
     larger_size = max(figsize)
-    fontsize = max(larger_size * .7, 15)
-    lw = max(larger_size * .1, 1)
+    fontsize = max(larger_size * .7, 10)
+    lw = max(larger_size * .1, 2)
 
     for i, ann, color in zip(range(len(annotations)), annotations, ann_colors):
         patch = mpatches.Rectangle(*ann.bb.xy_w_h, fill=True, facecolor=color, edgecolor=color, lw=0, alpha=.05)
@@ -393,7 +393,7 @@ def plot_anns(ax, annotations: List[Annotation], ann_colors=None, with_index=Fal
             text += f" {i}"
         txt = ax.text(ann.bb.l, ann.bb.t, text, verticalalignment='bottom', color=color, fontsize=fontsize,
                       alpha=.5)
-        txt.set_path_effects([patheffects.Stroke(linewidth=1, foreground='BLACK'), patheffects.Normal()])
+        txt.set_path_effects([patheffects.Stroke(linewidth=lw, foreground='BLACK'), patheffects.Normal()])
 
         if "head" in ann:
             ax.scatter(*ann.head, marker=">", s=50, alpha=.5, color="green", edgecolor="black", linewidth=1)

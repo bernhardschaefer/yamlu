@@ -377,7 +377,7 @@ def plot_anns(ax, annotations: List[Annotation], ann_colors=None, with_index=Fal
     # very rough estimate
     figsize = ax.figure.get_size_inches()
     larger_size = max(figsize)
-    fontsize = max(larger_size * .7, 8)
+    fontsize = max(larger_size * .7, 15)
     lw = max(larger_size * .1, 1)
 
     for i, ann, color in zip(range(len(annotations)), annotations, ann_colors):

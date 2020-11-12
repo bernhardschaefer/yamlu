@@ -299,13 +299,11 @@ class AnnotatedImage:
             img=self.img
         )
 
-    def plot(self, figsize=None, with_bb=True, with_index=False, axis_opt="off", **imshow_kwargs):
+    def plot(self, figsize=None, with_bb=True, with_index=False, axis_opt="off", min_score=0.0, **imshow_kwargs):
         assert self.img is not None, f"{self}: missing img attribute!"
         plot_img(self.img, figsize=figsize, axis_opt=axis_opt, **imshow_kwargs)
-        ax = plt.gca()
-
         if with_bb:
-            plot_anns(ax, self.annotations, with_index=with_index)
+            plot_anns(plt.gca(), self.annotations, with_index=with_index, min_score=min_score)
 
     def save(self, imgs_path: Path):
         self.img.save(imgs_path / self.filename)

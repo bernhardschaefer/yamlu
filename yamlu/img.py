@@ -1,4 +1,5 @@
 import copy
+import functools
 import logging
 import math
 from collections import Counter
@@ -118,6 +119,14 @@ class BoundingBox:
         return self.w * self.h
 
     @property
+    def diameter(self):
+        return math.sqrt(self.w ** 2 + self.h ** 2)
+
+    @property
+    def aspect_ratio(self):
+        return self.w / self.h
+
+    @property
     def tb_mid(self):
         return self.t + self.h / 2
 
@@ -152,7 +161,9 @@ class BoundingBox:
         return t >= bb.t and l >= bb.l and b <= bb.b and r <= bb.r
 
     def iou(self, bb) -> float:
-        return self.intersection(bb).area / self.union(bb).area
+        intersection_area = self.intersection(bb).area
+        union_area = self.area + bb.area - intersection_area
+        return intersection_area / union_area
 
     def distance(self, bb) -> float:
         bbs1 = np.array(self.tlbr).reshape(1, -1)
@@ -323,6 +334,10 @@ class AnnotatedImage:
     def filter_substr(self, substr: str):
         return [a for a in self.annotations if substr in a.category]
 
+    def union_bb(self):
+        bbs = [a.bb for a in self.annotations]
+        return functools.reduce(lambda bb1, bb2: bb1.union(bb2), bbs)
+
     @property
     def boxes_tlbr(self):
         boxes = np.array([a.bb.tlbr for a in self.annotations])
@@ -374,11 +389,12 @@ def plot_anns(ax, annotations: List[Annotation], ann_colors=None, with_index=Fal
 
     annotations = [a for a in annotations if "score" not in a or a.score >= min_score]
 
-    # very rough estimate
+    # rough estimates so that text + kp sizes scale with figure size
     figsize = ax.figure.get_size_inches()
     larger_size = max(figsize)
     fontsize = max(larger_size * .7, 10)
     lw = max(larger_size * .1, 1)
+    kp_size = fontsize ** 2  # in plt.scatter s is area (w*h)
 
     for i, ann, color in zip(range(len(annotations)), annotations, ann_colors):
         patch = mpatches.Rectangle(*ann.bb.xy_w_h, fill=True, facecolor=color, edgecolor=color, lw=0, alpha=.05)
@@ -396,9 +412,9 @@ def plot_anns(ax, annotations: List[Annotation], ann_colors=None, with_index=Fal
         txt.set_path_effects([patheffects.Stroke(linewidth=1, foreground='BLACK'), patheffects.Normal()])
 
         if "head" in ann:
-            ax.scatter(*ann.head, marker=">", s=50, alpha=.5, color="green", edgecolor="black", linewidth=1)
+            ax.scatter(*ann.head, marker=">", s=kp_size, alpha=.5, color="blue", edgecolor="black", linewidth=1)
         if "tail" in ann:
-            ax.scatter(*ann.tail, marker="o", s=50, alpha=.5, color="green", edgecolor="black", linewidth=1)
+            ax.scatter(*ann.tail, marker="o", s=kp_size, alpha=.5, color="blue", edgecolor="black", linewidth=1)
         if "next" in ann:
             draw_connection(ann, ax)
 

@@ -37,3 +37,6 @@ class TestBoundingBox(unittest.TestCase):
 
         b3 = BoundingBox(10, 10, 15, 15)
         assert b1.iou(b3) == 0.
+
+        b4 = BoundingBox(5, 5, 15, 15)
+        assert b1.iou(b4) == 1 / 7

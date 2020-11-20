@@ -1,11 +1,11 @@
+import itertools
 import warnings
 from typing import List
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sns
-import sklearn.metrics
+from sklearn import metrics
 from sklearn.preprocessing import LabelEncoder
 
 
@@ -13,8 +13,8 @@ def cl_report(y_true, y_pred, classes: List[str], digits=3, only_avg=False) -> p
     # micro AP == micro AR == accuracy in a multi-class setting (https://datascience.stackexchange.com/a/29054)
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        class_rep = sklearn.metrics.classification_report(y_true, y_pred, labels=list(range(len(classes))),
-                                                          target_names=classes, digits=digits, output_dict=True)
+        class_rep = metrics.classification_report(y_true, y_pred, labels=list(range(len(classes))),
+                                                  target_names=classes, digits=digits, output_dict=True)
     cr_df = pd.DataFrame(class_rep).T
     for col in ['f1-score', 'precision', 'recall']:
         cr_df[col] = cr_df[col].round(decimals=digits)
@@ -24,9 +24,9 @@ def cl_report(y_true, y_pred, classes: List[str], digits=3, only_avg=False) -> p
 
 
 def plot_roc_auc(y_true, y_score):
-    fpr, tpr, thresholds = sklearn.metrics.roc_curve(y_true, y_score, pos_label=None, sample_weight=None,
-                                                     drop_intermediate=True)
-    roc_auc = sklearn.metrics.roc_auc_score(y_true, y_score)
+    fpr, tpr, thresholds = metrics.roc_curve(y_true, y_score, pos_label=None, sample_weight=None,
+                                             drop_intermediate=True)
+    roc_auc = metrics.roc_auc_score(y_true, y_score)
 
     plt.figure()
     lw = 2
@@ -42,46 +42,47 @@ def plot_roc_auc(y_true, y_score):
 
 
 def plot_cm(y_true, y_pred, classes, figsize=(6, 6)):
-    cm = sklearn.metrics.confusion_matrix(y_true, y_pred)
+    cm = metrics.confusion_matrix(y_true, y_pred)
     plot_confusion_matrix(cm, classes, figsize=figsize)
 
 
-def plot_confusion_matrix(cm, classes,
-                          normalize=False,
-                          title='Confusion matrix',
-                          cmap=plt.cm.Blues,
-                          figsize=(6, 6),
-                          colorbar=True):
+def plot_confusion_matrix(cm, display_labels, normalize=False, cmap="Blues", figsize=(8, 8),
+                          xticks_rotation="vertical", colorbar=True, plot_zero=True):
     """
     This function prints and plots the confusion matrix.
     Normalization can be applied by setting `normalize=True`.
+    Difference from sklearn.metrics.ConfusionMatrixDisplay:
+    - zeros: uses alpha and allows not plotting zeros
+    - colorbar: allows disabling colorbar
     """
     if normalize:
         cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
 
-    with sns.axes_style("white"):
-        plt.figure(figsize=figsize)
-        plt.imshow(cm, interpolation='nearest', cmap=cmap)
-        plt.title(title)
-        if colorbar:
-            plt.colorbar()
-        tick_marks = np.arange(len(classes))
-        plt.xticks(tick_marks, classes, rotation=90, ha="center")
-        plt.yticks(tick_marks, classes)
+    # with sns.axes_style("white"):
+    fig, ax = plt.subplots(figsize=figsize)
+    ax.imshow(cm, interpolation='nearest', cmap=cmap)
+    if colorbar:
+        ax.colorbar()
 
-        fmt = '.2f' if normalize else 'd'
-        thresh = cm.max() / 2.
-        import itertools
-        for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
-            cnt = cm[i, j]
-            plt.text(j, i, format(cnt, fmt),
-                     alpha=1 if cnt > 0 else .3,
-                     horizontalalignment="center",
-                     color="white" if cnt > thresh else "black")
+    fmt = '.2f' if normalize else 'd'
+    thresh = cm.max() / 2.
+    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+        cnt = cm[i, j]
+        if cnt == 0 and not plot_zero:
+            continue
+        ax.text(j, i, format(cnt, fmt), alpha=1 if cnt > 0 else .3, ha="center", va="center",
+                color="white" if cnt > thresh else "black")
 
-        plt.ylabel('True label')
-        plt.xlabel('Predicted label')
-        plt.tight_layout()
+    n_classes = cm.shape[0]
+    ax.set(xticks=np.arange(n_classes),
+           yticks=np.arange(n_classes),
+           xticklabels=display_labels,
+           yticklabels=display_labels,
+           ylabel="True label",
+           xlabel="Predicted label")
+
+    ax.set_ylim((n_classes - 0.5, -0.5))
+    plt.setp(ax.get_xticklabels(), rotation=xticks_rotation)
 
 
 def confusion_classes(cm, le):
@@ -101,7 +102,7 @@ def confusion_classes(cm, le):
 def test_cm():
     y_true = [2, 0, 2, 2, 0, 1]
     y_pred = [0, 0, 2, 2, 0, 2]
-    cm_test = sklearn.metrics.confusion_matrix(y_true, y_pred)
+    cm_test = metrics.confusion_matrix(y_true, y_pred)
     plot_confusion_matrix(cm_test, ["a", "b", "c"], figsize=(3, 3))
     le_test = LabelEncoder()
     le_test.fit_transform(["a", "b", "c"])

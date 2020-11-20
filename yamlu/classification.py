@@ -42,7 +42,7 @@ def plot_roc_auc(y_true, y_score):
 
 
 def plot_cm(y_true, y_pred, classes, figsize=(6, 6)):
-    cm = metrics.confusion_matrix(y_true, y_pred)
+    cm = metrics.confusion_matrix(y_true, y_pred, labels=classes, normalize=None)
     plot_confusion_matrix(cm, classes, figsize=figsize)
 
 
@@ -55,9 +55,6 @@ def plot_confusion_matrix(cm, display_labels, normalize=False, cmap="Blues", fig
     - zeros: uses alpha and allows not plotting zeros
     - colorbar: allows disabling colorbar
     """
-    if normalize:
-        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
-
     # with sns.axes_style("white"):
     fig, ax = plt.subplots(figsize=figsize)
     ax.imshow(cm, interpolation='nearest', cmap=cmap)

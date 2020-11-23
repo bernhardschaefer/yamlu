@@ -47,7 +47,7 @@ def plot_cm(y_true, y_pred, classes, figsize=(6, 6)):
 
 
 def plot_confusion_matrix(cm, display_labels, normalize=False, cmap="Blues", figsize=(8, 8),
-                          xticks_rotation="vertical", colorbar=True, plot_zero=True):
+                          xticks_rotation="vertical", colorbar=True, plot_zero=True, xy_label=True):
     """
     This function prints and plots the confusion matrix.
     Normalization can be applied by setting `normalize=True`.
@@ -71,15 +71,18 @@ def plot_confusion_matrix(cm, display_labels, normalize=False, cmap="Blues", fig
                 color="white" if cnt > thresh else "black")
 
     n_classes = cm.shape[0]
-    ax.set(xticks=np.arange(n_classes),
-           yticks=np.arange(n_classes),
-           xticklabels=display_labels,
-           yticklabels=display_labels,
-           ylabel="True label",
-           xlabel="Predicted label")
+    ax.set(xticks=np.arange(n_classes), yticks=np.arange(n_classes),
+           xticklabels=display_labels, yticklabels=display_labels)
+    if xy_label:
+        ax.set(ylabel="True label", xlabel="Predicted label")
 
     ax.set_ylim((n_classes - 0.5, -0.5))
     plt.setp(ax.get_xticklabels(), rotation=xticks_rotation)
+    if xticks_rotation == 45:
+        plt.setp(ax.get_xticklabels(), ha="right")
+
+    # otherwise x/y labels are sometimes cut off when saving figure
+    plt.tight_layout()
 
 
 def confusion_classes(cm, le):

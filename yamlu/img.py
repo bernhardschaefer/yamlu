@@ -310,17 +310,19 @@ class AnnotatedImage:
             img=self.img
         )
 
-    def plot(self, figsize=None, with_bb=True, with_index=False, axis_opt="off", min_score=0.0, **imshow_kwargs):
+    def plot(self, figsize=None, categories: List[str] = None, with_index=False, min_score=0.0, draw_connections=True,
+             **imshow_kwargs):
         assert self.img is not None, f"{self}: missing img attribute!"
-        plot_img(self.img, figsize=figsize, axis_opt=axis_opt, **imshow_kwargs)
-        if with_bb:
-            plot_anns(plt.gca(), self.annotations, with_index=with_index, min_score=min_score)
+        plot_img(self.img, figsize=figsize, **imshow_kwargs)
+        plot_anns(self.annotations, categories=categories, with_index=with_index, min_score=min_score,
+                  draw_connections=draw_connections)
 
     def save(self, imgs_path: Path):
         self.img.save(imgs_path / self.filename)
 
-    def save_with_anns(self, directory: Path, figsize=None, suffix="_bb", jpg_quality=75):
-        self.plot(figsize=figsize)
+    def save_with_anns(self, directory: Path, figsize=None, categories: List[str] = None, draw_connections=True,
+                       suffix="_bb", jpg_quality=75):
+        self.plot(figsize=figsize, categories=categories, draw_connections=draw_connections)
         directory.mkdir(exist_ok=True, parents=True)
         img_path = directory / f"{self.fname_without_suffix}{suffix}.jpg"
         plt.savefig(str(img_path), pil_kwargs={"quality": jpg_quality})
@@ -359,41 +361,54 @@ class AnnotatedImage:
         return s
 
 
-def compute_colors_for_annotations(annotations: List[Annotation], cmap='jet'):  # Dark2, Accent, jet
-    categories = set(a.category for a in annotations)
-    cat_to_id = dict((c, i) for i, c in enumerate(categories))
-    return compute_colors(annotations, cat_to_id, cmap)
+def compute_colors(annotations: List[Annotation], categories: List[str], cmap='jet') -> List[np.ndarray]:
+    """
+    :param annotations: list of annotations
+    :param categories: dataset categories
+    :param cmap: matplotlib cmap (other options include Dark2, Accent)
+    :return: a list with an rgba array for each annotation
+    """
+    dataset_cat_to_id = {c: i for i, c in enumerate(categories)}
 
-
-def compute_colors(annotations: List[Annotation], cat_to_id: Dict[str, int], cmap):
-    cat_ids = np.array([cat_to_id[ann.category] for ann in annotations])
+    cat_ids = np.array([dataset_cat_to_id[ann.category] for ann in annotations])
 
     cm = plt.get_cmap(cmap)
-    cNorm = colors.Normalize(vmin=0, vmax=len(cat_to_id) - 1)
+    cNorm = colors.Normalize(vmin=0, vmax=len(categories) - 1)
     scalarMap = cmx.ScalarMappable(norm=cNorm, cmap=cm)
     scalarMap.get_clim()
 
     return [scalarMap.to_rgba(c) for c in cat_ids]
 
 
-def plot_anns(ax, annotations: List[Annotation], ann_colors=None, with_index=False, digits: int = 1,
-              min_score: float = 0.0):
+def plot_anns(annotations: List[Annotation], categories: List[str] = None, ax=None, with_index=False, digits: int = 1,
+              min_score: float = 0.0, draw_connections=True):
+    """
+    :param annotations: annotations to plot
+    :param categories: dataset categories
+    :param ax: matplotlib axes
+    :param with_index: include the annotation index into the bounding box label
+    :param digits: score digits
+    :param min_score: score threshold for plotting the annotation
+    :param draw_connections: draw arrow connections
+    """
     if len(annotations) == 0:
         _logger.warning("plot_anns: passed empty annotations list")
         return
 
-    if ann_colors is None:
-        ann_colors = compute_colors_for_annotations(annotations)
-    else:
-        assert len(annotations) == len(ann_colors), f"{len(annotations)} != {len(ann_colors)}"
+    if ax is None:
+        ax = plt.gca()
+    if categories is None:
+        categories = list(set(a.category for a in annotations))
+    ann_colors = compute_colors(annotations, categories)
 
     annotations = [a for a in annotations if "score" not in a or a.score >= min_score]
 
     # rough estimates so that text + kp sizes scale with figure size
     figsize = ax.figure.get_size_inches()
     larger_size = max(figsize)
-    fontsize = max(larger_size * .7, 10)
-    lw = max(larger_size * .1, 1)
+    fontsize = larger_size * 1.  # .7
+    conn_size = larger_size * .5
+    lw = larger_size * .1
     kp_size = fontsize ** 2  # in plt.scatter s is area (w*h)
 
     for i, ann, color in zip(range(len(annotations)), annotations, ann_colors):
@@ -415,12 +430,12 @@ def plot_anns(ax, annotations: List[Annotation], ann_colors=None, with_index=Fal
             ax.scatter(*ann.head, marker=">", s=kp_size, alpha=.5, color="blue", edgecolor="black", linewidth=1)
         if "tail" in ann:
             ax.scatter(*ann.tail, marker="o", s=kp_size, alpha=.5, color="blue", edgecolor="black", linewidth=1)
-        if "next" in ann:
-            draw_connection(ann, ax)
+        if draw_connections and "next" in ann:
+            draw_arrow_connections(ann, ax, lw_conn=conn_size, head_length=conn_size * 2, head_width=conn_size)
 
 
-def draw_connection(ann: Annotation, ax, lw_conn=4, color=(220 / 255., 20 / 255., 60 / 255.),
-                    ls="-", head_length=10, head_width=4, alpha=.5):
+def draw_arrow_connections(ann: Annotation, ax, lw_conn=4, color=(220 / 255., 20 / 255., 60 / 255.),
+                           ls="-", head_length=10, head_width=4, alpha=.5):
     vertices = [ann.next.bb.center]
     codes = [mpath.Path.MOVETO]
 
@@ -453,8 +468,8 @@ def draw_connection(ann: Annotation, ax, lw_conn=4, color=(220 / 255., 20 / 255.
     ax.add_patch(p)
 
 
-def plot_img(img: Union[np.ndarray, Image.Image, torch.Tensor], cmap="gray", axis_opt="off", figsize=None,
-             save_path=None, **imshow_kwargs):
+def plot_img(img: Union[np.ndarray, Image.Image, torch.Tensor], cmap="gray", figsize=None, save_path=None,
+             **imshow_kwargs):
     if isinstance(img, torch.Tensor):
         img = img.cpu().numpy()
 
@@ -464,7 +479,7 @@ def plot_img(img: Union[np.ndarray, Image.Image, torch.Tensor], cmap="gray", axi
     fig = plt.figure(figsize=figsize)
 
     ax = fig.add_axes([0, 0, 1, 1])
-    ax.axis(axis_opt)
+    ax.axis("off")
     ax.imshow(np.asarray(img), cmap=cmap, **imshow_kwargs)
 
     if save_path:

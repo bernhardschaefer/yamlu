@@ -5,6 +5,19 @@ from PIL import Image
 from matplotlib import colors
 
 
+def grayscale_transparency(img: Image.Image) -> Image.Image:
+    """
+    Sets the alpha transparency of an image according to its grayscale value,
+    i.e. white is fully transparent whereas black is not transparent.
+    """
+    # noinspection PyTypeChecker
+    img_np = np.asarray(img).copy()
+    # noinspection PyTypeChecker
+    grayscale = np.asarray(img.convert("L"))
+    img_np[:, :, -1] = 255 - grayscale
+    return Image.fromarray(img_np)
+
+
 def white_to_transparency(img: Image.Image, thresh=255) -> Image.Image:
     """
     Makes the white pixels in an image transparent

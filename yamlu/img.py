@@ -380,16 +380,26 @@ def compute_colors(annotations: List[Annotation], categories: List[str], cmap='j
     return [scalarMap.to_rgba(c) for c in cat_ids]
 
 
-def plot_anns(annotations: List[Annotation], categories: List[str] = None, ax=None, with_index=False, digits: int = 1,
-              min_score: float = 0.0, draw_connections=True):
+def plot_anns(annotations: List[Annotation], categories: List[str] = None, ann_colors=None, ax=None, with_index=False,
+              digits: int = 1, min_score: float = 0.0, draw_connections=True,
+              alpha_bb=.15, alpha_txt=.5, alpha_kp=.5,
+              font_size_scale=.7, lw_scale=.1, black_lw_font_scale=0.05, text_horizontal_alignment="left"):
     """
     :param annotations: annotations to plot
-    :param categories: dataset categories
+    :param categories: dataset categories for computing deterministic annotation colors
+    :param ann_colors: color for each annotation to use (categories is ignored if ann_colors is set)
     :param ax: matplotlib axes
     :param with_index: include the annotation index into the bounding box label
     :param digits: score digits
     :param min_score: score threshold for plotting the annotation
     :param draw_connections: draw arrow connections
+    :param alpha_bb: alpha for the bounding box fill (not the border)
+    :param alpha_txt: alpha for the text
+    :param alpha_kp: alpha for scattered keypoints
+    :param font_size_scale: font size scale relative to larger size of the figure
+    :param lw_scale: bounding box linewidth relative to larger size of the figure
+    :param black_lw_font_scale: scale of the black stroke surrounding the font relative to font size
+    :param text_horizontal_alignment: horizontal alignment of bounding box text (one of 'left', 'center', 'right')
     """
     if len(annotations) == 0:
         _logger.warning("plot_anns: passed empty annotations list")
@@ -399,39 +409,56 @@ def plot_anns(annotations: List[Annotation], categories: List[str] = None, ax=No
         ax = plt.gca()
     if categories is None:
         categories = list(set(a.category for a in annotations))
-    ann_colors = compute_colors(annotations, categories)
+    if ann_colors is None:
+        ann_colors = compute_colors(annotations, categories)
 
     annotations = [a for a in annotations if "score" not in a or a.score >= min_score]
 
     # rough estimates so that text + kp sizes scale with figure size
     figsize = ax.figure.get_size_inches()
     larger_size = max(figsize)
-    fontsize = larger_size * 1.  # .7
+    fontsize = larger_size * font_size_scale
     conn_size = larger_size * .5
-    lw = larger_size * .1
+    lw = larger_size * lw_scale
     kp_size = fontsize ** 2  # in plt.scatter s is area (w*h)
+    black_lw_font = fontsize * black_lw_font_scale
 
     for i, ann, color in zip(range(len(annotations)), annotations, ann_colors):
-        patch = mpatches.Rectangle(*ann.bb.xy_w_h, fill=True, facecolor=color, edgecolor=color, lw=0, alpha=.05)
+        patch = mpatches.Rectangle(*ann.bb.xy_w_h, fill=True, facecolor=color, edgecolor=color, lw=0, alpha=alpha_bb)
         ax.add_patch(patch)
         patch = mpatches.Rectangle(*ann.bb.xy_w_h, fill=False, facecolor="none", edgecolor=color, lw=lw, alpha=.8)
         ax.add_patch(patch)
 
         text = ann.category
         if "score" in ann:
-            text += f" {round(ann.score * 100, digits)}%"
+            text += f" {round(ann.score * 100, digits)}%".replace(".0", "")
         if with_index:
             text += f" {i}"
-        txt = ax.text(ann.bb.l, ann.bb.t, text, verticalalignment='bottom', color=color, fontsize=fontsize,
-                      alpha=.5)
-        txt.set_path_effects([patheffects.Stroke(linewidth=1, foreground='BLACK'), patheffects.Normal()])
+
+        txt_pt = _bb_txt_pos(ann.bb, text_horizontal_alignment)
+        txt = ax.text(*txt_pt, text, va='bottom', ha=text_horizontal_alignment, color=color, fontsize=fontsize,
+                      alpha=alpha_txt)
+        if black_lw_font > 0:
+            txt.set_path_effects(
+                [patheffects.Stroke(linewidth=black_lw_font, foreground='BLACK'), patheffects.Normal()])
 
         if "head" in ann:
-            ax.scatter(*ann.head, marker=">", s=kp_size, alpha=.5, color="blue", edgecolor="black", linewidth=1)
+            ax.scatter(*ann.head, marker=">", s=kp_size, alpha=alpha_kp, color="blue", edgecolor="black", linewidth=1)
         if "tail" in ann:
-            ax.scatter(*ann.tail, marker="o", s=kp_size, alpha=.5, color="blue", edgecolor="black", linewidth=1)
+            ax.scatter(*ann.tail, marker="o", s=kp_size, alpha=alpha_kp, color="blue", edgecolor="black", linewidth=1)
         if draw_connections and "next" in ann:
             draw_arrow_connections(ann, ax, lw_conn=conn_size, head_length=conn_size * 2, head_width=conn_size)
+
+
+def _bb_txt_pos(bb: BoundingBox, text_horizontal_alignment: str):
+    assert text_horizontal_alignment in ["left", "center", "right"]
+    if text_horizontal_alignment == "left":
+        return bb.l, bb.t
+    if text_horizontal_alignment == "center":
+        return bb.lr_mid, bb.t
+    if text_horizontal_alignment == "right":
+        return bb.r, bb.t
+    raise ValueError(f"Invalid text_horizontal_alignment={text_horizontal_alignment}")
 
 
 def draw_arrow_connections(ann: Annotation, ax, lw_conn=4, color=(220 / 255., 20 / 255., 60 / 255.),
@@ -487,7 +514,8 @@ def plot_img(img: Union[np.ndarray, Image.Image, torch.Tensor], cmap="gray", fig
 
 
 def plot_imgs(imgs: Union[np.ndarray, List[np.ndarray], List[Image.Image], torch.Tensor], ncols: int = None,
-              img_size=(5, 5), cmap="gray", axis_opt="off", titles: List[str] = None, **imshow_kwargs):
+              img_size=(5, 5), cmap="gray", axis_opt="off", titles: List[str] = None, max_allowed_imgs=100,
+              **imshow_kwargs):
     """
     :param imgs: batch of imgs with shape (batch_size, h, w) or (batch_size, h, w, 3)
     :param ncols: number of columns
@@ -495,9 +523,10 @@ def plot_imgs(imgs: Union[np.ndarray, List[np.ndarray], List[Image.Image], torch
     :param cmap: matplotlib colormap
     :param axis_opt: plot axis or not ("off"/"on")
     :param titles: axis titles
+    :param max_allowed_imgs: throws an error if more than max_allowed_imgs are passed
     """
     n_imgs = len(imgs)
-    assert 0 < n_imgs < 100
+    assert 0 < n_imgs < max_allowed_imgs, f"n_imgs: {n_imgs}"
 
     if ncols is None:
         ncols = min(n_imgs, 5)

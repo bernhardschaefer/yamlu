@@ -383,7 +383,8 @@ def compute_colors(annotations: List[Annotation], categories: List[str], cmap='j
 def plot_anns(annotations: List[Annotation], categories: List[str] = None, ann_colors=None, ax=None, with_index=False,
               digits: int = 1, min_score: float = 0.0, draw_connections=True,
               alpha_bb=.15, alpha_txt=.5, alpha_kp=.5,
-              font_size_scale=.7, lw_scale=.1, black_lw_font_scale=0.05, text_horizontal_alignment="left"):
+              font_size_scale=.7, lw_scale=.1, black_lw_font_scale=0.05, text_horizontal_pos="left",
+              text_vertical_pos="top"):
     """
     :param annotations: annotations to plot
     :param categories: dataset categories for computing deterministic annotation colors
@@ -399,7 +400,8 @@ def plot_anns(annotations: List[Annotation], categories: List[str] = None, ann_c
     :param font_size_scale: font size scale relative to larger size of the figure
     :param lw_scale: bounding box linewidth relative to larger size of the figure
     :param black_lw_font_scale: scale of the black stroke surrounding the font relative to font size
-    :param text_horizontal_alignment: horizontal alignment of bounding box text (one of 'left', 'center', 'right')
+    :param text_horizontal_pos: horizontal position of bounding box text (one of 'left', 'center', 'right')
+    :param text_vertical_pos: vetical position of bounding box text (one of 'top', 'bottom')
     """
     if len(annotations) == 0:
         _logger.warning("plot_anns: passed empty annotations list")
@@ -435,9 +437,8 @@ def plot_anns(annotations: List[Annotation], categories: List[str] = None, ann_c
         if with_index:
             text += f" {i}"
 
-        txt_pt = _bb_txt_pos(ann.bb, text_horizontal_alignment)
-        txt = ax.text(*txt_pt, text, va='bottom', ha=text_horizontal_alignment, color=color, fontsize=fontsize,
-                      alpha=alpha_txt)
+        txt_kwargs = _txt_coord_alignment(ann.bb, text_horizontal_pos, text_vertical_pos)
+        txt = ax.text(**txt_kwargs, s=text, color=color, fontsize=fontsize, alpha=alpha_txt)
         if black_lw_font > 0:
             txt.set_path_effects(
                 [patheffects.Stroke(linewidth=black_lw_font, foreground='BLACK'), patheffects.Normal()])
@@ -450,15 +451,23 @@ def plot_anns(annotations: List[Annotation], categories: List[str] = None, ann_c
             draw_arrow_connections(ann, ax, lw_conn=conn_size, head_length=conn_size * 2, head_width=conn_size)
 
 
-def _bb_txt_pos(bb: BoundingBox, text_horizontal_alignment: str):
-    assert text_horizontal_alignment in ["left", "center", "right"]
-    if text_horizontal_alignment == "left":
-        return bb.l, bb.t
-    if text_horizontal_alignment == "center":
-        return bb.lr_mid, bb.t
-    if text_horizontal_alignment == "right":
-        return bb.r, bb.t
-    raise ValueError(f"Invalid text_horizontal_alignment={text_horizontal_alignment}")
+def _txt_coord_alignment(bb: BoundingBox, text_horizontal_pos: str, text_vertical_pos: str):
+    assert text_horizontal_pos in ["left", "center", "right"]
+    assert text_vertical_pos in ["top", "bottom"]
+    vert_coord = bb.t if text_vertical_pos == "top" else bb.b
+    if text_horizontal_pos == "left":
+        horiz_coord = bb.l
+    elif text_horizontal_pos == "center":
+        horiz_coord = bb.lr_mid
+    else:
+        horiz_coord = bb.r
+
+    # text vertical alignment is opposite of positioning, i.e. text is aligned to bottom when it's placed on top of bb
+    va = "bottom" if text_vertical_pos == "top" else "top"
+    # text horizontal alignment equals the position
+    ha = text_horizontal_pos
+
+    return {"x": horiz_coord, "y": vert_coord, "va": va, "ha": ha}
 
 
 def draw_arrow_connections(ann: Annotation, ax, lw_conn=4, color=(220 / 255., 20 / 255., 60 / 255.),

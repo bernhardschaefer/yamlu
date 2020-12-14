@@ -455,7 +455,7 @@ def plot_anns(annotations: List[Annotation], categories: List[str] = None, ann_c
             ax.scatter(*ann.head, marker=">", s=kp_size, alpha=alpha_kp, color="blue", edgecolor="black", linewidth=1)
         if "tail" in ann:
             ax.scatter(*ann.tail, marker="o", s=kp_size, alpha=alpha_kp, color="blue", edgecolor="black", linewidth=1)
-        if draw_connections and "next" in ann:
+        if draw_connections:
             draw_arrow_connections(ann, ax, lw_conn=conn_size, head_length=conn_size * 2, head_width=conn_size)
 
 
@@ -480,20 +480,24 @@ def _txt_coord_alignment(bb: BoundingBox, text_horizontal_pos: str, text_vertica
 
 def draw_arrow_connections(ann: Annotation, ax, lw_conn=4, color=(220 / 255., 20 / 255., 60 / 255.),
                            ls="-", head_length=10, head_width=4, alpha=.5):
-    vertices = [ann.next.bb.center]
-    codes = [mpath.Path.MOVETO]
+    vertices = []
 
-    if "head" in ann:
-        codes.append(mpath.Path.LINETO)
-        vertices.insert(0, ann.head)
+    if "arrow_prev" in ann:
+        vertices.append(ann.arrow_prev.bb.center)
 
     if "tail" in ann:
-        codes.append(mpath.Path.LINETO)
-        vertices.insert(0, ann.tail)
+        vertices.append(ann.tail)
 
-    if "prev" in ann:
-        vertices.insert(0, ann.prev.bb.center)
-        codes.append(mpath.Path.LINETO)
+    if "head" in ann:
+        vertices.append(ann.head)
+
+    if "arrow_next" in ann:
+        vertices.append(ann.arrow_next.bb.center)
+
+    if len(vertices) == 0:
+        return
+
+    codes = [mpath.Path.MOVETO] + [mpath.Path.LINETO] * (len(vertices) - 1)
 
     path = mpath.Path(vertices, codes)
 

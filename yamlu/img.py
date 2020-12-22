@@ -247,9 +247,9 @@ class Annotation:
     def extra_fields(self):
         return {k: v for k, v in self._fields.items() if k not in ["category", "bb"]}
 
-    def plot(self, img: Image.Image, figsize=None, pad=30):
+    def plot(self, img: Image.Image, figsize=None, pad=30, **plot_ann_kwargs):
         plot_img(img, figsize=figsize)
-        plot_anns([self])
+        plot_anns([self], **plot_ann_kwargs)
 
         bb = self.bb
         plt.xlim(bb.l - pad, bb.r + pad)

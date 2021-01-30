@@ -390,7 +390,7 @@ def compute_colors(annotations: List[Annotation], categories: List[str], cmap='j
 
 def plot_anns(annotations: List[Annotation], categories: List[str] = None, ann_colors=None, ax=None, with_index=False,
               digits: int = 1, min_score: float = 0.0, draw_connections=True,
-              alpha_bb=.15, alpha_txt=.5, alpha_kp=.5,
+              alpha_bb=.15, alpha_txt=.5, alpha_kp=.3,
               font_size_scale=.7, lw_scale=.1, black_lw_font_scale=0.05, text_horizontal_pos="left",
               text_vertical_pos="top"):
     """
@@ -428,9 +428,9 @@ def plot_anns(annotations: List[Annotation], categories: List[str] = None, ann_c
     figsize = ax.figure.get_size_inches()
     larger_size = max(figsize)
     fontsize = larger_size * font_size_scale
-    conn_size = larger_size * .5
+    conn_size = larger_size * .3
     lw = larger_size * lw_scale
-    kp_size = fontsize ** 2  # in plt.scatter s is area (w*h)
+    kp_size = (fontsize * 0.66) ** 2  # in plt.scatter s is area (w*h)
     black_lw_font = fontsize * black_lw_font_scale
 
     for i, ann, color in zip(range(len(annotations)), annotations, ann_colors):
@@ -451,6 +451,9 @@ def plot_anns(annotations: List[Annotation], categories: List[str] = None, ann_c
             txt.set_path_effects(
                 [patheffects.Stroke(linewidth=black_lw_font, foreground='BLACK'), patheffects.Normal()])
 
+        if "keypoints" in ann:
+            xs, ys = ann.keypoints.T[:2]
+            ax.plot(xs, ys, ".-", markersize=fontsize * 0.66, alpha=alpha_kp, linewidth=conn_size, color="red")
         if "head" in ann:
             ax.scatter(*ann.head, marker=">", s=kp_size, alpha=alpha_kp, color="blue", edgecolor="black", linewidth=1)
         if "tail" in ann:
@@ -479,22 +482,25 @@ def _txt_coord_alignment(bb: BoundingBox, text_horizontal_pos: str, text_vertica
 
 
 def draw_arrow_connections(ann: Annotation, ax, lw_conn=4, color=(220 / 255., 20 / 255., 60 / 255.),
-                           ls="-", head_length=10, head_width=4, alpha=.5):
+                           ls="-", head_length=10, head_width=4, alpha=.3):
     vertices = []
 
     if "arrow_prev" in ann:
         vertices.append(ann.arrow_prev.bb.center)
 
-    if "tail" in ann:
-        vertices.append(ann.tail)
-
-    if "head" in ann:
-        vertices.append(ann.head)
+    if "waypoints" in ann:
+        vertices += ann.waypoints.tolist()
+    elif "keypoints" in ann:
+        vertices += ann.keypoints[:, :2].tolist()
+    else:
+        kps = [kp for kp in ["tail", "head"] if kp in ann]
+        for kp in kps:
+            vertices.append(ann.get(kp))
 
     if "arrow_next" in ann:
         vertices.append(ann.arrow_next.bb.center)
 
-    if len(vertices) == 0:
+    if len(vertices) <= 1:
         return
 
     codes = [mpath.Path.MOVETO] + [mpath.Path.LINETO] * (len(vertices) - 1)

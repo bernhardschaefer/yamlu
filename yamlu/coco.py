@@ -80,7 +80,7 @@ class CocoDatasetExport:
     def dump_split(self, split: str):
         _logger.info("%s: starting split=%s, write_img=%s, write_ann_img=%s, sample=%s", self.ds.name, split,
                      self.write_img, self.write_ann_img, self.sample)
-        assert split in self.ds.splits
+        assert split in self.ds.splits, f"{split} not in {self.ds.splits}"
 
         split_path = self.create_split_path_dir(split, remove_existing_images=self.write_img)
 

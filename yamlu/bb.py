@@ -77,8 +77,8 @@ def pts_boxes_distance(pts: torch.Tensor, boxes_ltrb: torch.Tensor, zero_dist_pt
     assert pts.dim() == 2
     assert pts.shape[1] == 2
 
-    xs, ys = [p.view(-1, 1) for p in pts.t()]
-    x_min, y_min, x_max, y_max = [p.view(1, -1) for p in boxes_ltrb.t()]
+    xs, ys = pts.unbind(1)
+    x_min, y_min, x_max, y_max = boxes_ltrb.unbind(1)
 
     xmin_d = x_min - xs
     xmax_d = xs - x_max

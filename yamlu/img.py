@@ -18,8 +18,6 @@ import torch
 from PIL import Image
 from matplotlib import patheffects
 
-from yamlu.bb import bbs_distances
-
 _logger = logging.getLogger(__name__)
 
 
@@ -168,6 +166,7 @@ class BoundingBox:
     def distance(self, bb) -> float:
         bbs1 = np.array(self.tlbr).reshape(1, -1)
         bbs2 = np.array(bb.tlbr).reshape(1, -1)
+        from yamlu.bb import bbs_distances
         return bbs_distances(bbs1, bbs2).item()
 
     def intersection(self, bb):

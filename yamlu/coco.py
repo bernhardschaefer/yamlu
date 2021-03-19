@@ -13,6 +13,7 @@ from joblib.externals import loky
 from tqdm import tqdm
 
 from yamlu.img import AnnotatedImage, Annotation
+from yamlu.np_utils import to_python_type
 
 _logger = logging.getLogger(__name__)
 
@@ -136,7 +137,7 @@ class CocoJsonExporter:
         self.ds = ds
         self.sample = check_sample_param(sample)
 
-        self._to_python_type = partial(_to_python_type, ndigits=ndigits)
+        self._to_python_type = partial(to_python_type, ndigits=ndigits)
 
         self.excluded_fields = {COCO_ANN_ID_FIELD, *self.ds.keypoint_fields, *COCO_FIELD_KEYS, *self.ds.relation_fields}
 
@@ -237,22 +238,6 @@ class CocoJsonExporter:
 def check_sample_param(sample):
     assert sample is None or not isinstance(sample, bool), f"sample is not None or an int: {sample} ({type(sample)})"
     return sample
-
-
-def _to_python_type(v, ndigits: int):
-    if v is None or isinstance(v, str) or isinstance(v, int):
-        return v
-    if isinstance(v, float):
-        return int(v) if v.is_integer() else round(v, ndigits)
-
-    if isinstance(v, list):
-        return [_to_python_type(x, ndigits) for x in v]
-    if isinstance(v, np.ndarray):
-        return v.round(ndigits).tolist()
-    if isinstance(v, np.number):
-        return _to_python_type(v.item(), ndigits)
-
-    raise ValueError(f"Unknown type for {v}: {type(v)}")
 
 
 def _create_images_dict(ann_imgs: List[AnnotatedImage]):

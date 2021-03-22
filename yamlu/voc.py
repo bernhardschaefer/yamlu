@@ -30,7 +30,7 @@ def dump_ai_voc(ai: AnnotatedImage, folder: Path):
         # Pascal annotations pixel-based integers in the range [1, W or H],
         # where a box with annotation (xmin=1, xmax=W) covers the whole image.
         # In coordinate space this is represented by (xmin=0, xmax=W)
-        for k, v in zip(["xmin", "xmax", "ymin", "ymax"], [bb.l + 1, bb.r + 1, bb.t, bb.b]):
+        for k, v in zip(["xmin", "ymin", "xmax", "ymax"], [bb.l + 1, bb.t + 1, bb.r, bb.b]):
             ET.SubElement(bndbox, k).text = str(to_python_type(v, 0))
 
     xml_path = folder / f"{ai.fname_without_suffix}.xml"
@@ -56,7 +56,7 @@ def parse_voc_annotations(voc_xml_path: Union[str, Path]):
         bbox = obj.find("bndbox")
         bb_dict = {e.tag: int(e.text) for e in bbox}
         # we leverage the fact that voc uses xmin, ymin, xmax, ymax field names
-        bb = BoundingBox.from_pascal_voc(*bb_dict.values())
+        bb = BoundingBox.from_pascal_voc(**bb_dict)
 
         anns.append(Annotation(category=category, bb=bb))
 

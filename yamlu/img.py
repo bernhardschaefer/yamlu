@@ -72,8 +72,15 @@ class BoundingBox:
         return cls(t=y, l=x, b=y + height, r=x + width, allow_neg_coord=allow_neg_coord)
 
     @classmethod
-    def from_pascal_voc(cls, l, t, r, b, allow_neg_coord=False):
+    def from_ltrb(cls, ltrb, allow_neg_coord=False):
+        l, t, r, b = ltrb
         return cls(t, l, b, r, allow_neg_coord)
+
+    @classmethod
+    def from_pascal_voc(cls, xmin, ymin, xmax, ymax, allow_neg_coord=False):
+        # pascal has pixel-based boxes in range [1, W/H]
+        # convert to continuous coordinate boxes in range [0,W/H]
+        return cls(t=ymin - 1, l=xmin - 1, b=ymax, r=xmax, allow_neg_coord=allow_neg_coord)
 
     @classmethod
     def from_points(cls, pts: np.ndarray, allow_neg_coord=False):
@@ -463,8 +470,7 @@ def plot_anns(annotations: List[Annotation], categories: List[str] = None, ann_c
 
 def _txt_coord_alignment(bb: BoundingBox, text_horizontal_pos: str, text_vertical_pos: str):
     assert text_horizontal_pos in ["left", "center", "right"]
-    assert text_vertical_pos in ["top", "bottom"]
-    vert_coord = bb.t if text_vertical_pos == "top" else bb.b
+    assert text_vertical_pos in ["top", "center", "bottom"]
     if text_horizontal_pos == "left":
         horiz_coord = bb.l
     elif text_horizontal_pos == "center":
@@ -473,7 +479,16 @@ def _txt_coord_alignment(bb: BoundingBox, text_horizontal_pos: str, text_vertica
         horiz_coord = bb.r
 
     # text vertical alignment is opposite of positioning, i.e. text is aligned to bottom when it's placed on top of bb
-    va = "bottom" if text_vertical_pos == "top" else "top"
+    if text_vertical_pos == "top":
+        va = "bottom"
+        vert_coord = bb.t
+    elif text_vertical_pos == "bottom":
+        va = "top"
+        vert_coord = bb.b
+    elif text_vertical_pos == "center":
+        va = "center"
+        vert_coord = bb.tb_mid
+
     # text horizontal alignment equals the position
     ha = text_horizontal_pos
 

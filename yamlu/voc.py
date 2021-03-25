@@ -33,6 +33,7 @@ def dump_ai_voc(ai: AnnotatedImage, folder: Path):
         for k, v in zip(["xmin", "ymin", "xmax", "ymax"], [bb.l + 1, bb.t + 1, bb.r, bb.b]):
             ET.SubElement(bndbox, k).text = str(to_python_type(v, 0))
 
+    folder.mkdir(parents=True, exist_ok=True)
     xml_path = folder / f"{ai.fname_without_suffix}.xml"
     # tree = ET.ElementTree(root)
     # tree.write(str(xml_path), encoding="utf-8")

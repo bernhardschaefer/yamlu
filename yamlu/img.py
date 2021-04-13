@@ -261,11 +261,14 @@ class Annotation:
         plt.xlim(bb.l - pad, bb.r + pad)
         plt.ylim(bb.b + pad, bb.t - pad)
 
-    def img_cropped(self, img: Union[Image.Image, np.ndarray]):
+    def img_cropped(self, img: Union[Image.Image, np.ndarray], pad=0):
         img = np.asarray(img)
         t, l, b, r = self.bb.tlbr
-        t, l = math.floor(t), math.floor(l)
-        b, r = math.ceil(b), math.ceil(r)
+        t, l = [max(math.floor(x) - pad, 0) for x in [t, l]]
+
+        img_h, img_w = img.shape[:2]
+        b, r = [min(math.ceil(x) + pad, m - 1) for x, m in zip([b, r], [img_h, img_w])]
+
         return Image.fromarray(img[t:b, l:r, ...])
 
     def __setattr__(self, name: str, val: Any) -> None:
@@ -433,7 +436,7 @@ def plot_anns(annotations: List[Annotation], categories: List[str] = None, ann_c
     # rough estimates so that text + kp sizes scale with figure size
     figsize = ax.figure.get_size_inches()
     larger_size = max(figsize)
-    fontsize = larger_size * font_size_scale
+    fontsize = max(larger_size * font_size_scale, 8)
     conn_size = larger_size * .3
     lw = larger_size * lw_scale
     kp_size = (fontsize * 0.66) ** 2  # in plt.scatter s is area (w*h)
@@ -459,7 +462,8 @@ def plot_anns(annotations: List[Annotation], categories: List[str] = None, ann_c
 
         if "keypoints" in ann:
             xs, ys = ann.keypoints.T[:2]
-            ax.plot(xs, ys, ".-", markersize=fontsize * 0.66, alpha=alpha_kp, linewidth=conn_size, color="red")
+            # ax.plot(xs, ys, ".-", markersize=fontsize * 0.66, alpha=alpha_kp, linewidth=conn_size, color="red")
+            ax.scatter(xs, ys, s=kp_size, alpha=alpha_kp, color="red")
         if "head" in ann:
             ax.scatter(*ann.head, marker=">", s=kp_size, alpha=alpha_kp, color="blue", edgecolor="black", linewidth=1)
         if "tail" in ann:

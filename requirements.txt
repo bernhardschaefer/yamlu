@@ -1,10 +1,13 @@
-joblib
 matplotlib
 numpy
-pandas
 pillow
-pytest
+# --- optional ---
 scikit-learn
-seaborn
+pandas
 torch
+seaborn
+# coco
 tqdm
+joblib
+# --- development ---
+pytest

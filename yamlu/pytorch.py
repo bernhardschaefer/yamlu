@@ -1,4 +1,8 @@
+import logging
+import os
+import random
 import warnings
+from datetime import datetime
 from typing import Union, Collection
 
 import numpy as np
@@ -82,3 +86,21 @@ def calc_metrics(y_true, y_scores, split: str):
          f"{split}_prec": p,
          f"{split}_rec": r}
     return m
+
+
+# copied from detectron2
+# https://github.com/facebookresearch/detectron2/blob/master/detectron2/utils/env.py
+def seed_all_rng(seed=None):
+    """
+    Set the random seed for the RNG in torch, numpy and python.
+
+    Args:
+        seed (int): if None, will use a strong random seed.
+    """
+    if seed is None:
+        seed = os.getpid() + int(datetime.now().strftime("%S%f")) + int.from_bytes(os.urandom(2), "big")
+        logger = logging.getLogger(__name__)
+        logger.info("Using a generated random seed {}".format(seed))
+    np.random.seed(seed)
+    torch.set_rng_state(torch.manual_seed(seed).get_state())
+    random.seed(seed)

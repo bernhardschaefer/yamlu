@@ -14,7 +14,6 @@ import matplotlib.patches as mpatches
 import matplotlib.path as mpath
 import matplotlib.pyplot as plt
 import numpy as np
-import torch
 from PIL import Image
 from matplotlib import patheffects
 
@@ -261,7 +260,7 @@ class Annotation:
         plt.xlim(bb.l - pad, bb.r + pad)
         plt.ylim(bb.b + pad, bb.t - pad)
 
-    def img_cropped(self, img: Union[Image.Image, np.ndarray], pad=0):
+    def img_cropped(self, img: Union[Image.Image, np.ndarray], pad=0, return_bb=False):
         img = np.asarray(img)
         t, l, b, r = self.bb.tlbr
         t, l = [max(math.floor(x) - pad, 0) for x in [t, l]]
@@ -269,7 +268,10 @@ class Annotation:
         img_h, img_w = img.shape[:2]
         b, r = [min(math.ceil(x) + pad, m - 1) for x, m in zip([b, r], [img_h, img_w])]
 
-        return Image.fromarray(img[t:b, l:r, ...])
+        img_crop = Image.fromarray(img[t:b, l:r, ...])
+        if return_bb:
+            return img_crop, BoundingBox(t, l, b, r)
+        return img_crop
 
     def __setattr__(self, name: str, val: Any) -> None:
         if name.startswith("_"):
@@ -334,8 +336,8 @@ class AnnotatedImage:
         plot_anns(self.annotations, categories=categories, with_index=with_index, min_score=min_score,
                   draw_connections=draw_connections)
 
-    def save(self, imgs_path: Path):
-        self.img.save(imgs_path / self.filename)
+    def save(self, imgs_path: Path, **params):
+        self.img.save(imgs_path / self.filename, **params)
 
     def save_with_anns(self, directory: Path, figsize=None, categories: List[str] = None, draw_connections=True,
                        suffix="_bb", jpg_quality=75):
@@ -540,9 +542,9 @@ def draw_arrow_connections(ann: Annotation, ax, lw_conn=4, color=(220 / 255., 20
     ax.add_patch(p)
 
 
-def plot_img(img: Union[np.ndarray, Image.Image, torch.Tensor], cmap="gray", figsize=None, save_path=None,
+def plot_img(img: Union[np.ndarray, Image.Image], cmap="gray", figsize=None, save_path=None,
              **imshow_kwargs):
-    if isinstance(img, torch.Tensor):
+    if hasattr(img, "cpu"):  # check if pytorch tensor without importing torch
         img = img.cpu().numpy()
 
     if not figsize:
@@ -558,7 +560,7 @@ def plot_img(img: Union[np.ndarray, Image.Image, torch.Tensor], cmap="gray", fig
         plt.savefig(save_path, cmap=cmap)
 
 
-def plot_imgs(imgs: Union[np.ndarray, List[np.ndarray], List[Image.Image], torch.Tensor], ncols: int = None,
+def plot_imgs(imgs: Union[np.ndarray, List[np.ndarray], List[Image.Image]], ncols: int = None,
               img_size=(5, 5), cmap="gray", axis_opt="off", titles: List[str] = None, max_allowed_imgs=100,
               **imshow_kwargs):
     """
@@ -579,7 +581,7 @@ def plot_imgs(imgs: Union[np.ndarray, List[np.ndarray], List[Image.Image], torch
     if titles is not None:
         assert len(imgs) == len(titles), f"{len(imgs)} != {len(titles)}"
 
-    if isinstance(imgs, torch.Tensor):
+    if hasattr(imgs, "detach"):  # check if pytorch tensor without importing torch
         imgs = imgs.detach().cpu().numpy()
 
     nrows = math.ceil(n_imgs / ncols)

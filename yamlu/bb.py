@@ -2,11 +2,10 @@
 import functools
 
 import numpy as np
-
-# https://medium.com/@venuktan/vectorized-intersection-over-union-iou-in-numpy-and-tensor-flow-4fa16231b63d
 import torch
 
 
+# https://medium.com/@venuktan/vectorized-intersection-over-union-iou-in-numpy-and-tensor-flow-4fa16231b63d
 def iou_matrix(bb_tlbr1: np.ndarray, bb_tlbr2: np.ndarray):
     """Pairwise vectorized iou matrix calculation for two arrays of bounding boxes with t,l,b,r convention
     :param bb_tlbr1 shape (m,4)
@@ -96,3 +95,16 @@ def pts_boxes_distance(pts: torch.Tensor, boxes_ltrb: torch.Tensor, zero_dist_pt
         ds[pts_in_box_mask] = d_min[pts_in_box_mask]
 
     return ds
+
+
+def pairwise_box_in_box(bbs_tlbr1: np.ndarray, bbs_tlbr2: np.ndarray, pad: float = 0):
+    """Checks for each pair if box1 is contained in padded box2"""
+    assert bbs_tlbr1.ndim == 2 and bbs_tlbr1.shape[1] == 4, bbs_tlbr1.shape
+    assert bbs_tlbr2.ndim == 2 and bbs_tlbr2.shape[1] == 4, bbs_tlbr2.shape
+    bbs1 = bbs_tlbr1[:, np.newaxis, ...]
+    bbs2 = bbs_tlbr2[np.newaxis, ...]
+    isin_min = (bbs1[..., [0, 1]] >= (bbs2[..., [0, 1]] - pad)).all(axis=-1)
+    isin_max = (bbs1[..., [2, 3]] <= (bbs2[..., [2, 3]] + pad)).all(axis=-1)
+    b1_in_b2 = isin_min & isin_max
+    assert b1_in_b2.shape == (len(bbs_tlbr1), len(bbs_tlbr2))
+    return b1_in_b2

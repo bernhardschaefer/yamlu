@@ -55,7 +55,7 @@ def parse_voc_annotations(voc_xml_path: Union[str, Path]):
         category = obj.find("name").text
 
         bbox = obj.find("bndbox")
-        bb_dict = {e.tag: int(e.text) for e in bbox}
+        bb_dict = {e.tag: float(e.text) for e in bbox}
         # we leverage the fact that voc uses xmin, ymin, xmax, ymax field names
         bb = BoundingBox.from_pascal_voc(**bb_dict)
 

@@ -13,6 +13,13 @@ from torch import nn
 from torch.utils.data import DataLoader
 
 
+def indices_to_mask(indices: torch.Tensor, mask_length: int) -> torch.BoolTensor:
+    mask = torch.full((mask_length,), False, dtype=torch.bool)
+    mask[indices] = True
+    # noinspection PyTypeChecker
+    return mask
+
+
 # https://github.com/pytorch/pytorch/issues/3025#issuecomment-392601780
 # https://github.com/pytorch/pytorch/pull/26144
 def isin(element: torch.Tensor, test_elements: Union[Collection, np.ndarray, torch.Tensor]):

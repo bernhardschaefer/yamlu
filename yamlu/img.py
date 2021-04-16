@@ -366,6 +366,10 @@ class AnnotatedImage:
         return boxes.reshape(len(self.annotations), 4)
 
     @property
+    def boxes_ltrb(self):
+        return self.boxes_tlbr[:, [1, 0, 3, 2]]
+
+    @property
     def size(self):
         return self.width, self.height
 
@@ -407,7 +411,7 @@ def plot_anns(annotations: List[Annotation], categories: List[str] = None, ann_c
     """
     :param annotations: annotations to plot
     :param categories: dataset categories for computing deterministic annotation colors
-    :param ann_colors: color for each annotation to use (categories is ignored if ann_colors is set)
+    :param ann_colors: color for each annotation to use (categories is ignored if ann_colors is set) or single color
     :param ax: matplotlib axes
     :param with_index: include the annotation index into the bounding box label
     :param digits: score digits
@@ -432,6 +436,9 @@ def plot_anns(annotations: List[Annotation], categories: List[str] = None, ann_c
         categories = list(set(a.category for a in annotations))
     if ann_colors is None:
         ann_colors = compute_colors(annotations, categories)
+    elif not isinstance(ann_colors, list):
+        # assume only a single color has been passed
+        ann_colors = [ann_colors] * len(annotations)
 
     annotations = [a for a in annotations if "score" not in a or a.score >= min_score]
 

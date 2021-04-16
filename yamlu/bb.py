@@ -98,13 +98,18 @@ def pts_boxes_distance(pts: torch.Tensor, boxes_ltrb: torch.Tensor, zero_dist_pt
 
 
 def pairwise_box_in_box(bbs_tlbr1: np.ndarray, bbs_tlbr2: np.ndarray, pad: float = 0):
-    """Checks for each pair if box1 is contained in padded box2"""
+    """
+    Given two lists of boxes B1 and B2 with N and M boxes respectively,
+    computes if box B1_i is contained in padded box B2_j between __all__ N x M pairs of boxes.
+    NOTE: works for both tlbr and ltrb bounding box convention and is also PyTorch compatible
+    """
     assert bbs_tlbr1.ndim == 2 and bbs_tlbr1.shape[1] == 4, bbs_tlbr1.shape
     assert bbs_tlbr2.ndim == 2 and bbs_tlbr2.shape[1] == 4, bbs_tlbr2.shape
-    bbs1 = bbs_tlbr1[:, np.newaxis, ...]
-    bbs2 = bbs_tlbr2[np.newaxis, ...]
-    isin_min = (bbs1[..., [0, 1]] >= (bbs2[..., [0, 1]] - pad)).all(axis=-1)
-    isin_max = (bbs1[..., [2, 3]] <= (bbs2[..., [2, 3]] + pad)).all(axis=-1)
+    # torch compatibility
+    bbs1 = bbs_tlbr1.unsqueeze(1) if hasattr(bbs_tlbr1, "unsqueeze") else bbs_tlbr1[:, np.newaxis, ...]
+    bbs2 = bbs_tlbr2.unsqueeze(0) if hasattr(bbs_tlbr2, "unsqueeze") else bbs_tlbr2[np.newaxis, ...]
+    isin_min = (bbs1[..., [0, 1]] >= (bbs2[..., [0, 1]] - pad)).all(-1)  # torch/numpy <-> dim/axis
+    isin_max = (bbs1[..., [2, 3]] <= (bbs2[..., [2, 3]] + pad)).all(-1)
     b1_in_b2 = isin_min & isin_max
     assert b1_in_b2.shape == (len(bbs_tlbr1), len(bbs_tlbr2))
     return b1_in_b2

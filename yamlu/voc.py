@@ -53,7 +53,6 @@ def dump_ai_voc(ai: AnnotatedImage, folder: Path, additional_fields: Set = None)
 def parse_voc_annotations(voc_xml_path: Union[str, Path]):
     tree = ET.parse(voc_xml_path)
     root = tree.getroot()
-
     # filename = root.find('filename').text
 
     anns = []
@@ -65,7 +64,11 @@ def parse_voc_annotations(voc_xml_path: Union[str, Path]):
         # we leverage the fact that voc uses xmin, ymin, xmax, ymax field names
         bb = BoundingBox.from_pascal_voc(**bb_dict)
 
-        anns.append(Annotation(category=category, bb=bb))
+        # Note: difficult and occluded is not parsed since I don't use them at the moment
+        add_elements = [e for e in obj if e.tag not in ["name", "bndbox", "difficult", "occluded"]]
+        add_fields = {e.tag: e.text for e in add_elements}
+
+        anns.append(Annotation(category=category, bb=bb, **add_fields))
 
     return anns
 

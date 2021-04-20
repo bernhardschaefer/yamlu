@@ -113,3 +113,10 @@ def pairwise_box_in_box(bbs_tlbr1: np.ndarray, bbs_tlbr2: np.ndarray, pad: float
     b1_in_b2 = isin_min & isin_max
     assert b1_in_b2.shape == (len(bbs_tlbr1), len(bbs_tlbr2))
     return b1_in_b2
+
+
+def union_boxes(boxes_ltrb):
+    import torch
+    lt = torch.min(boxes_ltrb[:, [0, 1]], dim=0)[0]
+    rb = torch.max(boxes_ltrb[:, [2, 3]], dim=0)[0]
+    return torch.cat([lt, rb])

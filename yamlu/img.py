@@ -438,7 +438,7 @@ def plot_anns(annotations: List[Annotation], categories: List[str] = None, ann_c
     if ax is None:
         ax = plt.gca()
     if categories is None:
-        categories = list(set(getattr(a, text_field) for a in annotations))
+        categories = [""] if text_field is None else list(set(getattr(a, text_field) for a in annotations))
     if ann_colors is None:
         ann_colors = compute_colors(annotations, categories)
     elif not isinstance(ann_colors, list):
@@ -462,7 +462,7 @@ def plot_anns(annotations: List[Annotation], categories: List[str] = None, ann_c
         patch = mpatches.Rectangle(*ann.bb.xy_w_h, fill=False, facecolor="none", edgecolor=color, lw=lw, alpha=.8)
         ax.add_patch(patch)
 
-        text = getattr(ann, text_field)
+        text = "" if text_field is None or text_field not in ann else getattr(ann, text_field)
         if "score" in ann:
             text += f" {round(ann.score * 100, digits)}%".replace(".0", "")
         if with_index:

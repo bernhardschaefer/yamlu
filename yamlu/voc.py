@@ -1,15 +1,16 @@
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import Union
+from typing import Union, Set
 from xml.dom import minidom
 
 from yamlu.img import AnnotatedImage, BoundingBox, Annotation
 from yamlu.np_utils import to_python_type
 
 
-def dump_ai_voc(ai: AnnotatedImage, folder: Path):
-    root = ET.Element("annotation")
+def dump_ai_voc(ai: AnnotatedImage, folder: Path, additional_fields: Set = None) -> Path:
+    additional_fields = {} if additional_fields is None else additional_fields
 
+    root = ET.Element("annotation")
     ET.SubElement(root, "folder").text = folder.name
     ET.SubElement(root, "filename").text = ai.filename
     ET.SubElement(root, "path").text = str(folder / ai.filename)
@@ -24,6 +25,10 @@ def dump_ai_voc(ai: AnnotatedImage, folder: Path):
         ET.SubElement(obj, "name").text = a.category
         ET.SubElement(obj, "difficult").text = str(0)
         ET.SubElement(obj, "occluded").text = str(0)
+
+        for k in additional_fields:
+            if k in a:
+                ET.SubElement(obj, k).text = str(getattr(a, k))
 
         bndbox = ET.SubElement(obj, "bndbox")
         bb = a.bb
@@ -42,6 +47,7 @@ def dump_ai_voc(ai: AnnotatedImage, folder: Path):
     # https://stackoverflow.com/questions/28813876/how-do-i-get-pythons-elementtree-to-pretty-print-to-an-xml-file
     xmlstr = minidom.parseString(ET.tostring(root)).toprettyxml(indent="   ")
     xml_path.write_text(xmlstr)
+    return xml_path
 
 
 def parse_voc_annotations(voc_xml_path: Union[str, Path]):

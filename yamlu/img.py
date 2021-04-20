@@ -157,6 +157,10 @@ class BoundingBox:
         """
         return self.l, self.t, self.r, self.b
 
+    @property
+    def ltrb(self):
+        return self.bb_pascal_voc
+
     def is_within_img(self, img_w, img_h):
         return self.is_within_bb(BoundingBox(0, 0, b=img_h, r=img_w))
 
@@ -407,7 +411,7 @@ def plot_anns(annotations: List[Annotation], categories: List[str] = None, ann_c
               digits: int = 1, min_score: float = 0.0, draw_connections=True,
               alpha_bb=.15, alpha_txt=.5, alpha_kp=.3,
               font_size_scale=.7, lw_scale=.1, black_lw_font_scale=0.05, text_horizontal_pos="left",
-              text_vertical_pos="top"):
+              text_vertical_pos="top", text_field="category"):
     """
     :param annotations: annotations to plot
     :param categories: dataset categories for computing deterministic annotation colors
@@ -425,6 +429,7 @@ def plot_anns(annotations: List[Annotation], categories: List[str] = None, ann_c
     :param black_lw_font_scale: scale of the black stroke surrounding the font relative to font size
     :param text_horizontal_pos: horizontal position of bounding box text (one of 'left', 'center', 'right')
     :param text_vertical_pos: vetical position of bounding box text (one of 'top', 'bottom')
+    :param text_field: field to use for the bounding box title
     """
     if len(annotations) == 0:
         _logger.warning("plot_anns: passed empty annotations list")
@@ -433,7 +438,7 @@ def plot_anns(annotations: List[Annotation], categories: List[str] = None, ann_c
     if ax is None:
         ax = plt.gca()
     if categories is None:
-        categories = list(set(a.category for a in annotations))
+        categories = list(set(getattr(a, text_field) for a in annotations))
     if ann_colors is None:
         ann_colors = compute_colors(annotations, categories)
     elif not isinstance(ann_colors, list):
@@ -457,7 +462,7 @@ def plot_anns(annotations: List[Annotation], categories: List[str] = None, ann_c
         patch = mpatches.Rectangle(*ann.bb.xy_w_h, fill=False, facecolor="none", edgecolor=color, lw=lw, alpha=.8)
         ax.add_patch(patch)
 
-        text = ann.category
+        text = getattr(ann, text_field)
         if "score" in ann:
             text += f" {round(ann.score * 100, digits)}%".replace(".0", "")
         if with_index:

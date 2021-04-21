@@ -1,15 +1,13 @@
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import Union, Set
+from typing import Union, Tuple
 from xml.dom import minidom
 
 from yamlu.img import AnnotatedImage, BoundingBox, Annotation
 from yamlu.np_utils import to_python_type
 
 
-def dump_ai_voc(ai: AnnotatedImage, folder: Path, additional_fields: Set = None) -> Path:
-    additional_fields = {} if additional_fields is None else additional_fields
-
+def dump_ai_voc(ai: AnnotatedImage, folder: Path, additional_fields: Tuple = ()) -> Path:
     root = ET.Element("annotation")
     ET.SubElement(root, "folder").text = folder.name
     ET.SubElement(root, "filename").text = ai.filename

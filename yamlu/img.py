@@ -408,7 +408,7 @@ def compute_colors(annotations: List[Annotation], categories: List[str], cmap='j
 
 
 def plot_anns(annotations: List[Annotation], categories: List[str] = None, ann_colors=None, ax=None, with_index=False,
-              digits: int = 1, min_score: float = 0.0, draw_connections=True,
+              digits: int = 1, min_score: float = 0.0, draw_connections=True, draw_keypoints=True,
               alpha_bb=.15, alpha_txt=.5, alpha_kp=.3,
               font_size_scale=.7, lw_scale=.1, black_lw_font_scale=0.05, text_horizontal_pos="left",
               text_vertical_pos="top", text_field="category"):
@@ -474,14 +474,15 @@ def plot_anns(annotations: List[Annotation], categories: List[str] = None, ann_c
             txt.set_path_effects(
                 [patheffects.Stroke(linewidth=black_lw_font, foreground='BLACK'), patheffects.Normal()])
 
-        if "keypoints" in ann:
-            xs, ys = ann.keypoints.T[:2]
-            # ax.plot(xs, ys, ".-", markersize=fontsize * 0.66, alpha=alpha_kp, linewidth=conn_size, color="red")
-            ax.scatter(xs, ys, s=kp_size, alpha=alpha_kp, color="red")
-        if "head" in ann:
-            ax.scatter(*ann.head, marker=">", s=kp_size, alpha=alpha_kp, color="blue", edgecolor="black", linewidth=1)
-        if "tail" in ann:
-            ax.scatter(*ann.tail, marker="o", s=kp_size, alpha=alpha_kp, color="blue", edgecolor="black", linewidth=1)
+        if draw_keypoints:
+            if "keypoints" in ann:
+                xs, ys = ann.keypoints.T[:2]
+                # ax.plot(xs, ys, ".-", markersize=fontsize * 0.66, alpha=alpha_kp, linewidth=conn_size, color="red")
+                ax.scatter(xs, ys, s=kp_size, alpha=alpha_kp, color="red")
+            if "head" in ann:
+                ax.scatter(*ann.head, marker=">", s=kp_size, alpha=alpha_kp, color="blue", edgecolor="black", lw=1)
+            if "tail" in ann:
+                ax.scatter(*ann.tail, marker="o", s=kp_size, alpha=alpha_kp, color="blue", edgecolor="black", lw=1)
         if draw_connections:
             draw_arrow_connections(ann, ax, lw_conn=conn_size, head_length=conn_size * 2, head_width=conn_size)
 

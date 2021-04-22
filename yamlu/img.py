@@ -321,6 +321,9 @@ class AnnotatedImage:
         img = read_img(img_path)
         return cls(img_path.name, width=img.width, height=img.height, annotations=annotations, img=img)
 
+    def __len__(self):
+        return len(self.annotations)
+
     def copy(self) -> "AnnotatedImage":
         """
         Creates a copy of the AnnotatedImage, but without copying the image itself

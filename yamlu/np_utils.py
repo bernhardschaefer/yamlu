@@ -13,7 +13,8 @@ def to_python_type(v, ndigits: int):
     if v is None or isinstance(v, str) or isinstance(v, int):
         return v
     if isinstance(v, float):
-        return int(v) if v.is_integer() else round(v, ndigits)
+        v = round(v, ndigits)
+        return int(v) if v.is_integer() else v
 
     if isinstance(v, list):
         return [to_python_type(x, ndigits) for x in v]

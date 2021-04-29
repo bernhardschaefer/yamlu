@@ -6,7 +6,6 @@ from datetime import datetime
 from typing import Union, Collection
 
 import numpy as np
-import sklearn.metrics
 import torch
 import torch.nn.functional as F
 from torch import nn
@@ -80,6 +79,7 @@ def calc_metrics(y_true, y_scores, split: str):
         else:
             y_pred = (y_scores > .5).numpy()
 
+    import sklearn.metrics
     acc = sklearn.metrics.accuracy_score(y_true, y_pred)
 
     average = "binary" if n_classes == 1 else "macro"

@@ -1,6 +1,6 @@
 matplotlib
 numpy
-pillow
+Pillow
 # --- optional ---
 scikit-learn
 pandas

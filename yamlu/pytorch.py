@@ -13,7 +13,7 @@ from torch.utils.data import DataLoader
 
 
 def indices_to_mask(indices: torch.Tensor, mask_length: int) -> torch.BoolTensor:
-    mask = torch.full((mask_length,), False, dtype=torch.bool)
+    mask = torch.full((mask_length,), False, dtype=torch.bool, device=indices.device)
     mask[indices] = True
     # noinspection PyTypeChecker
     return mask

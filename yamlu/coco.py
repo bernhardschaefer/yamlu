@@ -5,7 +5,7 @@ import random
 from abc import ABC, abstractmethod
 from functools import partial
 from pathlib import Path
-from typing import List, Tuple, Optional, Dict
+from typing import List, Tuple, Optional, Dict, Union
 
 import numpy as np
 from joblib import delayed, Parallel
@@ -23,8 +23,15 @@ COCO_ANN_ID_FIELD = "coco_ann_id"
 
 
 class Dataset(ABC):
-    def __init__(self, name: str, dataset_path: Path, split_n_imgs: Dict[str, int], coco_categories: List[Dict],
-                 keypoint_fields: List[str], relation_fields: List[str]):
+    def __init__(
+            self,
+            name: str,
+            dataset_path: Union[Path, str],
+            split_n_imgs: Dict[str, int],
+            coco_categories: List[Dict],
+            keypoint_fields: List[str],
+            relation_fields: List[str],
+    ):
         """
         :param name: name of the dataset
         :param dataset_path: root of the dataset where images and coco json annotations are saved to
@@ -34,7 +41,7 @@ class Dataset(ABC):
         :param relation_fields: relation fields, i.e. name of Annotation fields that point to other Annotation objects
         """
         self.name = name
-        self.dataset_path = dataset_path
+        self.dataset_path = Path(dataset_path) if isinstance(dataset_path, str) else dataset_path
 
         self.split_n_imgs = split_n_imgs
         self.splits = list(self.split_n_imgs.keys())
@@ -55,8 +62,15 @@ class Dataset(ABC):
 
 
 class CocoDatasetExport:
-    def __init__(self, ds: Dataset, write_img=True, write_ann_img=False, sample: int = None, n_jobs: int = None,
-                 ndigits: int = 3):
+    def __init__(
+            self,
+            ds: Dataset,
+            write_img=True,
+            write_ann_img=False,
+            sample: int = None,
+            n_jobs: int = None,
+            ndigits: int = 3,
+    ):
         """
         :param write_ann_img: write image with annotated bounding boxes into an extra directory for debugging purposes
         """

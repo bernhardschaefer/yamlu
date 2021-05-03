@@ -25,7 +25,6 @@ COCO_ANN_ID_FIELD = "coco_ann_id"
 class Dataset(ABC):
     def __init__(
             self,
-            name: str,
             dataset_path: Union[Path, str],
             split_n_imgs: Dict[str, int],
             coco_categories: List[Dict],
@@ -33,15 +32,14 @@ class Dataset(ABC):
             relation_fields: List[str],
     ):
         """
-        :param name: name of the dataset
         :param dataset_path: root of the dataset where images and coco json annotations are saved to
         :param split_n_imgs: number of imgs per split (e.g. {"train": 100, "valid": 5, "test": 5})
         :param coco_categories: coco categories with name, supercategory and id fields
         :param keypoint_fields: name of keypoint fields
         :param relation_fields: relation fields, i.e. name of Annotation fields that point to other Annotation objects
         """
-        self.name = name
         self.dataset_path = Path(dataset_path) if isinstance(dataset_path, str) else dataset_path
+        self.name = self.dataset_path.name
 
         self.split_n_imgs = split_n_imgs
         self.splits = list(self.split_n_imgs.keys())

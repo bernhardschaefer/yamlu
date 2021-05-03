@@ -324,6 +324,9 @@ class AnnotatedImage:
     def __len__(self):
         return len(self.annotations)
 
+    def __getitem__(self, idx):
+        return self.annotations[idx]
+
     def copy(self) -> "AnnotatedImage":
         """
         Creates a copy of the AnnotatedImage, but without copying the image itself

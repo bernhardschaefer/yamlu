@@ -339,12 +339,10 @@ class AnnotatedImage:
             img=self.img
         )
 
-    def plot(self, figsize=None, categories: List[str] = None, with_index=False, min_score=0.0, draw_connections=True,
-             **imshow_kwargs):
+    def plot(self, figsize=None, **plot_anns_kwargs):
         assert self.img is not None, f"{self}: missing img attribute!"
-        plot_img(self.img, figsize=figsize, **imshow_kwargs)
-        plot_anns(self.annotations, categories=categories, with_index=with_index, min_score=min_score,
-                  draw_connections=draw_connections)
+        plot_img(self.img, figsize=figsize)
+        plot_anns(self.annotations, **plot_anns_kwargs)
 
     def save(self, imgs_path: Path, **params):
         self.img.save(imgs_path / self.filename, **params)
@@ -481,8 +479,9 @@ def plot_anns(annotations: List[Annotation], categories: List[str] = None, ann_c
                 [patheffects.Stroke(linewidth=black_lw_font, foreground='BLACK'), patheffects.Normal()])
 
         if draw_keypoints:
-            if "keypoints" in ann:
-                xs, ys = ann.keypoints.T[:2]
+            if "keypoints" in ann or "waypoints" in ann:
+                kps = ann.keypoints if "keypoints" in ann else ann.waypoints
+                xs, ys = kps.T[:2]
                 # ax.plot(xs, ys, ".-", markersize=fontsize * 0.66, alpha=alpha_kp, linewidth=conn_size, color="red")
                 ax.scatter(xs, ys, s=kp_size, alpha=alpha_kp, color="red")
             if "head" in ann:

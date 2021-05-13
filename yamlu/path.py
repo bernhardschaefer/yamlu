@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List, Iterator
+from typing import List, Iterator, Union
 
 EXCLUDED_FILE_NAMES = {"__MACOSX", "desktop.ini"}
 
@@ -8,7 +8,9 @@ def glob(path: Path, pattern: str, include_hidden=False) -> List[Path]:
     return _get_sorted_paths(path.glob(pattern), include_hidden)
 
 
-def ls(path: Path, include_hidden=False) -> List[Path]:
+def ls(path: Union[Path, str], include_hidden=False) -> List[Path]:
+    if isinstance(path, str):
+        path = Path(path)
     return _get_sorted_paths(path.iterdir(), include_hidden)
 
 

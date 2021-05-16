@@ -442,7 +442,7 @@ def plot_anns(annotations: List[Annotation], categories: List[str] = None, ann_c
     if ax is None:
         ax = plt.gca()
     if categories is None:
-        categories = [""] if text_field is None else list(set(getattr(a, text_field) for a in annotations))
+        categories = list(set(a.category for a in annotations))
     if ann_colors is None:
         ann_colors = compute_colors(annotations, categories)
     elif not isinstance(ann_colors, list):

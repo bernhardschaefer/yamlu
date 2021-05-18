@@ -385,6 +385,10 @@ class AnnotatedImage:
     def fname_without_suffix(self) -> str:
         return Path(self.filename).stem
 
+    @property
+    def categories(self):
+        return [a.category for a in self.annotations]
+
     def __repr__(self):
         n_anns = len(self.annotations)
         cat_cnt = Counter(a.category for a in self.annotations)

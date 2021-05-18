@@ -26,7 +26,10 @@ def dump_ai_voc(ai: AnnotatedImage, folder: Path, additional_fields: Tuple = ())
 
         for k in additional_fields:
             if k in a:
-                ET.SubElement(obj, k).text = str(getattr(a, k))
+                v = getattr(a, k)
+                if isinstance(v, Annotation):
+                    v = v.aid
+                ET.SubElement(obj, k).text = str(v)
 
         bndbox = ET.SubElement(obj, "bndbox")
         bb = a.bb
@@ -65,6 +68,7 @@ def parse_voc_annotations(voc_xml_path: Union[str, Path]):
         # Note: difficult and occluded is not parsed since I don't use them at the moment
         add_elements = [e for e in obj if e.tag not in ["name", "bndbox", "difficult", "occluded"]]
         add_fields = {e.tag: e.text for e in add_elements}
+        add_fields = {k: int(v) if v.isdigit() else v for k, v in add_fields.items()}
 
         anns.append(Annotation(category=category, bb=bb, **add_fields))
 

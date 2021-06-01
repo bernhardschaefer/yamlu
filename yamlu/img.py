@@ -344,12 +344,12 @@ class AnnotatedImage:
         plot_img(self.img, figsize=figsize)
         plot_anns(self.annotations, **plot_anns_kwargs)
 
-    def save(self, imgs_path: Path, **params):
-        self.img.save(imgs_path / self.filename, **params)
+    def save(self, directory: Path, **params):
+        directory.mkdir(exist_ok=True, parents=True)
+        self.img.save(directory / self.filename, **params)
 
-    def save_with_anns(self, directory: Path, figsize=None, categories: List[str] = None, draw_connections=True,
-                       suffix="_bb", jpg_quality=75):
-        self.plot(figsize=figsize, categories=categories, draw_connections=draw_connections)
+    def save_with_anns(self, directory: Path, figsize=None, suffix="_bb", jpg_quality=75, **plot_anns_kwargs):
+        self.plot(figsize=figsize, **plot_anns_kwargs)
         directory.mkdir(exist_ok=True, parents=True)
         img_path = directory / f"{self.fname_without_suffix}{suffix}.jpg"
         plt.savefig(str(img_path), pil_kwargs={"quality": jpg_quality})

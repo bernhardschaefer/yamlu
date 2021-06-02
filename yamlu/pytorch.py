@@ -13,6 +13,7 @@ from torch.utils.data import DataLoader
 
 
 def indices_to_mask(indices: torch.Tensor, mask_length: int) -> torch.BoolTensor:
+    assert mask_length > indices.max(), f"mask_length={mask_length} must be greater than max(indices)={indices.max()}"
     mask = torch.full((mask_length,), False, dtype=torch.bool, device=indices.device)
     mask[indices] = True
     # noinspection PyTypeChecker

@@ -1,6 +1,14 @@
 import torch
 
-from yamlu.pytorch import isin
+from yamlu.pytorch import isin, indices_to_mask
+
+
+# noinspection PyArgumentList
+def test_indices_to_mask():
+    indices = torch.LongTensor([0, 2, 3])
+    mask_length = 5
+    mask = indices_to_mask(indices, mask_length)
+    assert torch.equal(mask, torch.BoolTensor([True, False, True, True, False]))
 
 
 # noinspection PyArgumentList

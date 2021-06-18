@@ -63,14 +63,17 @@ class CocoDatasetExport:
     def __init__(
             self,
             ds: Dataset,
-            write_img=True,
-            write_ann_img=False,
-            sample: int = None,
-            n_jobs: int = None,
+            write_img: bool = True,
+            write_ann_img: bool = False,
+            sample: Optional[int] = None,
+            random_sample: bool = True,
+            n_jobs: Optional[int] = None,
             ndigits: int = 3,
     ):
         """
-        :param write_ann_img: write image with annotated bounding boxes into an extra directory for debugging purposes
+        Args:
+            write_ann_img: write image with annotated bounding boxes into an extra directory for debugging purposes
+            random_sample: sample images randomly (True) or sample first k (False)
         """
         assert isinstance(write_img, bool)
         assert isinstance(write_ann_img, bool)
@@ -80,6 +83,7 @@ class CocoDatasetExport:
 
         self.ds = ds
         self.sample = sample
+        self.random_sample = random_sample
         self.coco_json_exporter = CocoJsonExporter(self.ds, sample, ndigits)
 
         self.n_jobs = n_jobs
@@ -91,8 +95,8 @@ class CocoDatasetExport:
         return {split: self.dump_split(split) for split in self.ds.splits}
 
     def dump_split(self, split: str):
-        _logger.info("%s: starting split=%s, write_img=%s, write_ann_img=%s, sample=%s", self.ds.name, split,
-                     self.write_img, self.write_ann_img, self.sample)
+        _logger.info("%s: starting split=%s, write_img=%s, write_ann_img=%s, sample=%s, random_sample=%s", self.ds.name,
+                     split, self.write_img, self.write_ann_img, self.sample, self.random_sample)
         assert split in self.ds.splits, f"{split} not in {self.ds.splits}"
 
         split_path = self.create_split_path_dir(split, remove_existing_images=self.write_img)
@@ -106,8 +110,11 @@ class CocoDatasetExport:
 
         idxs = list(range(self.ds.split_n_imgs[split]))
         if self.sample is not None and len(idxs) > self.sample:
-            random.seed(0)
-            idxs = random.sample(idxs, self.sample)
+            if self.random_sample:
+                random.seed(0)
+                idxs = random.sample(idxs, self.sample)
+            else:
+                idxs = idxs[:self.sample]
 
         parallel = Parallel(n_jobs=self.n_jobs)
         ann_imgs = parallel(delayed(self.dump_image)(idx, split, split_path, ann_imgs_path) for idx in tqdm(idxs))

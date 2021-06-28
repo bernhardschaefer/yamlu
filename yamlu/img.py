@@ -48,6 +48,9 @@ class BoundingBox:
             return False
         return self.tlbr == other.tlbr
 
+    def __hash__(self):
+        return hash(self.tlbr)
+
     def __repr__(self):
         return f"BoundingBox(t={self.t:.2f},l={self.l:.2f},b={self.b:.2f},r={self.r:.2f})"
 
@@ -251,6 +254,14 @@ class Annotation:
     @property
     def bb(self) -> BoundingBox:
         return self._fields["bb"]
+
+    def __eq__(self, other):
+        if not isinstance(other, Annotation):
+            return False
+        return self._fields == other._fields
+
+    def __hash__(self):
+        return hash(frozenset(self._fields.items()))
 
     @property
     def extra_fields(self):

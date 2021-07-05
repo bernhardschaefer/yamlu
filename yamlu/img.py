@@ -255,14 +255,6 @@ class Annotation:
     def bb(self) -> BoundingBox:
         return self._fields["bb"]
 
-    def __eq__(self, other):
-        if not isinstance(other, Annotation):
-            return False
-        return self._fields == other._fields
-
-    def __hash__(self):
-        return hash(frozenset(self._fields.items()))
-
     @property
     def extra_fields(self):
         return {k: v for k, v in self._fields.items() if k not in ["category", "bb"]}

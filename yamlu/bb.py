@@ -120,3 +120,23 @@ def union_boxes(boxes_ltrb):
     lt = torch.min(boxes_ltrb[:, [0, 1]], dim=0)[0]
     rb = torch.max(boxes_ltrb[:, [2, 3]], dim=0)[0]
     return torch.cat([lt, rb])
+
+
+def polygon_box_degree(box: np.ndarray):
+    """
+    Computes the degree of a bounding box described as a polygon with 4 points.
+    Args:
+        box: bounding box described through 4 corner points starting from left-top and going clockwise
+    Returns: the degree of the rotated bounding box
+    """
+    assert box.shape == (4, 2), box.shape
+
+    # for horizontal boxes mid1->mid2 is the line from left-mid to right-mid
+    mid1 = (box[0] + box[3]) / 2.
+    mid2 = (box[1] + box[2]) / 2.
+
+    # see https://stackoverflow.com/questions/41855261/calculate-the-angle-between-a-line-and-x-axis
+    # compute angle of mid1->mid2 to x-axis
+    xd, yd = mid2 - mid1
+    angle = np.arctan2(yd, xd)
+    return -np.rad2deg(angle)

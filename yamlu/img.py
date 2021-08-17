@@ -419,7 +419,7 @@ def compute_colors(annotations: List[Annotation], categories: List[str], cmap='j
 
 
 def plot_anns(annotations: List[Annotation], categories: List[str] = None, ann_colors=None, ax=None, with_index=False,
-              digits: int = 1, min_score: float = 0.0, draw_connections=True, draw_keypoints=True,
+              with_score=True, digits: int = 1, min_score: float = 0.0, draw_connections=True, draw_keypoints=True,
               alpha_bb=.15, alpha_txt=.5, alpha_kp=.3,
               font_size_scale=.7, lw_scale=.1, black_lw_font_scale=0.05, text_horizontal_pos="left",
               text_vertical_pos="top", text_field="category"):
@@ -429,6 +429,7 @@ def plot_anns(annotations: List[Annotation], categories: List[str] = None, ann_c
     :param ann_colors: color for each annotation to use (categories is ignored if ann_colors is set) or single color
     :param ax: matplotlib axes
     :param with_index: include the annotation index into the bounding box label
+    :param with_score: include the score into the bounding box label
     :param digits: score digits
     :param min_score: score threshold for plotting the annotation
     :param draw_connections: draw arrow connections
@@ -474,7 +475,7 @@ def plot_anns(annotations: List[Annotation], categories: List[str] = None, ann_c
         ax.add_patch(patch)
 
         text = "" if text_field is None or text_field not in ann else getattr(ann, text_field)
-        if "score" in ann:
+        if with_score and "score" in ann:
             text += f" {round(ann.score * 100, digits)}%".replace(".0", "")
         if with_index:
             text += f" {i}"

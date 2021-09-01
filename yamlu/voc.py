@@ -1,10 +1,14 @@
+import logging
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import Union, Tuple
+from typing import Union, Tuple, List, Dict
 from xml.dom import minidom
 
+import yamlu
 from yamlu.img import AnnotatedImage, BoundingBox, Annotation
 from yamlu.np_utils import to_python_type
+
+_logger = logging.getLogger(__name__)
 
 
 def dump_ai_voc(ai: AnnotatedImage, folder: Path, additional_fields: Tuple = ()) -> Path:
@@ -51,7 +55,7 @@ def dump_ai_voc(ai: AnnotatedImage, folder: Path, additional_fields: Tuple = ())
     return xml_path
 
 
-def parse_voc_annotations(voc_xml_path: Union[str, Path]):
+def parse_voc_annotations(voc_xml_path: Union[str, Path]) -> List[Annotation]:
     tree = ET.parse(voc_xml_path)
     root = tree.getroot()
     # filename = root.find('filename').text
@@ -73,6 +77,12 @@ def parse_voc_annotations(voc_xml_path: Union[str, Path]):
         anns.append(Annotation(category=category, bb=bb, **add_fields))
 
     return anns
+
+
+def parse_voc_anns_directory(root: Path) -> Dict[str, List[Annotation]]:
+    xml_paths = yamlu.glob(root, "**/*.xml")
+    _logger.info("Parsing %d voc xmls", len(xml_paths))
+    return {p.stem: parse_voc_annotations(p) for p in xml_paths}
 
 
 def parse_voc_xml_img(img_path: Path, voc_xml_path: Union[str, Path]) -> AnnotatedImage:

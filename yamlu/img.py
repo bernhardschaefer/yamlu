@@ -19,6 +19,8 @@ from matplotlib import patheffects
 
 _logger = logging.getLogger(__name__)
 
+DEFAULT_FIGSIZE = (12, 12)
+
 
 class BoundingBox:
     """
@@ -342,7 +344,7 @@ class AnnotatedImage:
             img=self.img
         )
 
-    def plot(self, figsize=None, **plot_anns_kwargs):
+    def plot(self, figsize=DEFAULT_FIGSIZE, **plot_anns_kwargs):
         assert self.img is not None, f"{self}: missing img attribute!"
         plot_img(self.img, figsize=figsize)
         plot_anns(self.annotations, **plot_anns_kwargs)
@@ -568,8 +570,7 @@ def draw_arrow_connections(ann: Annotation, ax, lw_conn=4, color=(220 / 255., 20
     ax.add_patch(p)
 
 
-def plot_img(img: Union[np.ndarray, Image.Image], cmap="gray", figsize=None, save_path=None,
-             **imshow_kwargs):
+def plot_img(img: Union[np.ndarray, Image.Image], figsize=DEFAULT_FIGSIZE, save_path=None, **imshow_kwargs):
     if hasattr(img, "cpu"):  # check if pytorch tensor without importing torch
         img = img.cpu().numpy()
 
@@ -580,20 +581,19 @@ def plot_img(img: Union[np.ndarray, Image.Image], cmap="gray", figsize=None, sav
 
     ax = fig.add_axes([0, 0, 1, 1])
     ax.axis("off")
-    ax.imshow(np.asarray(img), cmap=cmap, **imshow_kwargs)
+    ax.imshow(np.asarray(img), **imshow_kwargs)
 
     if save_path:
-        plt.savefig(save_path, cmap=cmap)
+        plt.savefig(save_path)
 
 
 def plot_imgs(imgs: Union[np.ndarray, List[np.ndarray], List[Image.Image]], ncols: int = None,
-              img_size=(5, 5), cmap="gray", axis_opt="off", titles: List[str] = None, max_allowed_imgs=100,
+              img_size=(5, 5), axis_opt="off", titles: List[str] = None, max_allowed_imgs=100,
               **imshow_kwargs):
     """
     :param imgs: batch of imgs with shape (batch_size, h, w) or (batch_size, h, w, 3)
     :param ncols: number of columns
     :param img_size: matplotlib size to use for each image
-    :param cmap: matplotlib colormap
     :param axis_opt: plot axis or not ("off"/"on")
     :param titles: axis titles
     :param max_allowed_imgs: throws an error if more than max_allowed_imgs are passed
@@ -622,7 +622,7 @@ def plot_imgs(imgs: Union[np.ndarray, List[np.ndarray], List[Image.Image]], ncol
         else:
             ax: plt.Axes = axs[i // ncols, i % ncols]
         ax.axis(axis_opt)
-        ax.imshow(np.asarray(img), cmap=cmap, **imshow_kwargs)
+        ax.imshow(np.asarray(img), **imshow_kwargs)
         if titles is not None:
             ax.set_title(titles[i])
 

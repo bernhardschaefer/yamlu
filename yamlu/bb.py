@@ -4,12 +4,13 @@ import functools
 import numpy as np
 
 
-# https://medium.com/@venuktan/vectorized-intersection-over-union-iou-in-numpy-and-tensor-flow-4fa16231b63d
-def iou_matrix(bb_tlbr1: np.ndarray, bb_tlbr2: np.ndarray):
-    """Pairwise vectorized iou matrix calculation for two arrays of bounding boxes with t,l,b,r convention
-    :param bb_tlbr1 shape (m,4)
-    :param bb_tlbr2 shape (n,4)
-    :return iou matrix with shape (m,n)
+def _get_pairwise_inter_area(bb_tlbr1: np.ndarray, bb_tlbr2: np.ndarray):
+    """Pairwise vectorized bounding box intersection area computation for two arrays with t,l,b,r convention
+    Args:
+        bb_tlbr1: shape (m,4)
+        bb_tlbr2: shape (n,4)
+    Returns:
+        intersection areas with shape (m,n), bb1 areas (m,), bb2 areas (n,)
     """
     assert bb_tlbr1.shape[1] == 4
     assert bb_tlbr2.shape[1] == 4
@@ -21,11 +22,36 @@ def iou_matrix(bb_tlbr1: np.ndarray, bb_tlbr2: np.ndarray):
     b_min = np.minimum(b1, np.transpose(b2))
     r_min = np.minimum(r1, np.transpose(r2))
 
-    interArea = np.maximum((b_min - t_max), 0) * np.maximum((r_min - l_max), 0)
-    boxAArea = (b1 - t1) * (r1 - l1)
-    boxBArea = (b2 - t2) * (r2 - l2)
-    iou = interArea / (boxAArea + np.transpose(boxBArea) - interArea)
+    inter_area = np.maximum((b_min - t_max), 0) * np.maximum((r_min - l_max), 0)
+    bb1_area = (b1 - t1) * (r1 - l1)
+    bb2_area = (b2 - t2) * (r2 - l2)
+    return inter_area, bb1_area, bb2_area
+
+
+# https://medium.com/@venuktan/vectorized-intersection-over-union-iou-in-numpy-and-tensor-flow-4fa16231b63d
+def iou_matrix(bb_tlbr1: np.ndarray, bb_tlbr2: np.ndarray):
+    """Pairwise vectorized iou matrix calculation for two arrays of bounding boxes with t,l,b,r convention
+    Args:
+        bb_tlbr1: shape (m,4)
+        bb_tlbr2: shape (n,4)
+    Returns:
+        iou matrix with shape (m,n)
+    """
+    inter_area, bb1_area, bb2_area = _get_pairwise_inter_area(bb_tlbr1, bb_tlbr2)
+    iou = inter_area / (bb1_area + np.transpose(bb2_area) - inter_area)
     return iou
+
+
+def pairwise_intersection_over_area(bb_tlbr1: np.ndarray, bb_tlbr2: np.ndarray):
+    """Pairwise intersection over bb1 area calculation for two arrays of bounding boxes with t,l,b,r convention
+    Args:
+        bb_tlbr1: shape (m,4)
+        bb_tlbr2: shape (n,4)
+    Returns:
+        intersection over area of bb1 with shape (m,n)
+    """
+    inter_area, bb1_area, bb2_area = _get_pairwise_inter_area(bb_tlbr1, bb_tlbr2)
+    return inter_area / bb1_area
 
 
 def iou_vector(bb_tlbr1: np.ndarray, bb_tlbr2: np.ndarray):

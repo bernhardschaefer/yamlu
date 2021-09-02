@@ -1,16 +1,18 @@
+from typing import List
+
 import numpy as np
 from scipy.sparse.csgraph import connected_components
 
-from yamlu.img import AnnotatedImage
+from yamlu.img import Annotation
 
 
-def transcribe_words(word_ai: AnnotatedImage, word_idxs: np.array, line_thresh: float, line_delim="\n",
+def transcribe_words(word_anns: List[Annotation], word_idxs: np.array, line_thresh: float, line_delim="\n",
                      direction: str = "lr") -> str:
     """
     Transcribe a text block given words and their bounding boxes
 
     Args:
-        word_ai: annotated image with word annotations that have a text attribute
+        word_anns: word annotations with the text in the category attribute
         word_idxs: the annotation indices to transcribe
         line_thresh: max y_mid dist in px such that two word bounding boxes are still considered to be on the same line
         line_delim: delimiter character for multiple lines
@@ -22,7 +24,7 @@ def transcribe_words(word_ai: AnnotatedImage, word_idxs: np.array, line_thresh: 
     """
     assert direction in {"lr", "rl", "tb", "bt"}, f"Invalid direction: {direction}"
 
-    xc, yc = np.array([word_ai[i].bb.center for i in word_idxs]).T
+    xc, yc = np.array([word_anns[i].bb.center for i in word_idxs]).T
 
     line_split_axis = yc if direction in ["lr", "rl"] else xc
     word_split_axis = xc if direction in ["lr", "rl"] else yc
@@ -42,7 +44,7 @@ def transcribe_words(word_ai: AnnotatedImage, word_idxs: np.array, line_thresh: 
         sorted_word_idxs = word_idxs_line[word_order]
         if not len(sorted_word_idxs.shape):
             sorted_word_idxs = sorted_word_idxs[..., np.newaxis]
-        line = " ".join([word_ai[wi].category for wi in sorted_word_idxs])
+        line = " ".join([word_anns[wi].category for wi in sorted_word_idxs])
         lines.append(line)
 
     return line_delim.join(lines)

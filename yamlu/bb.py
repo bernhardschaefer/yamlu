@@ -54,6 +54,25 @@ def pairwise_intersection_over_area(bb_tlbr1: np.ndarray, bb_tlbr2: np.ndarray):
     return inter_area / bb1_area
 
 
+def do_matching(match_matrix: np.ndarray, thresh: float):
+    match_max = match_matrix.max(axis=1)
+    bb2_idxs = match_matrix.argmax(axis=1)
+    # set matched idx to -1 if below thresh
+    bb2_idxs[match_max < thresh] = -1
+
+    bb1_idxs = np.arange(match_matrix.shape[0])
+    return bb1_idxs, bb2_idxs, match_max
+
+
+def ioa_matching(bb_tlbr1: np.ndarray, bb_tlbr2: np.ndarray, ioa_thresh: float):
+    ioa_matrix = pairwise_intersection_over_area(bb_tlbr1, bb_tlbr2)
+    return do_matching(ioa_matrix, ioa_thresh)
+
+
+def iou_matching(bb_tlbr1: np.ndarray, bb_tlbr2: np.ndarray, iou_thresh: float):
+    return do_matching(iou_matrix(bb_tlbr1, bb_tlbr2), iou_thresh)
+
+
 def iou_vector(bb_tlbr1: np.ndarray, bb_tlbr2: np.ndarray):
     """computes iou between the bounding boxes at the same index in bboxes1 and bboxes2
     :param bboxes1 shape (n,4)
@@ -166,3 +185,16 @@ def polygon_box_degree(box: np.ndarray):
     xd, yd = mid2 - mid1
     angle = np.arctan2(yd, xd)
     return -np.rad2deg(angle)
+
+
+def direction_from_degree(degree):
+    if -45 < degree < 45:
+        return "lr"
+    elif 45 <= degree < 135:
+        return "bt"
+    elif degree <= -135 or degree >= 135:
+        return "rl"
+    elif -135 < degree <= -45:
+        return "tb"
+    else:
+        raise ValueError(f"Unexpected degree: {degree:.2f}")

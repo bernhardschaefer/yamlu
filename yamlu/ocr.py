@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Union
 
 import numpy as np
 from scipy.sparse.csgraph import connected_components
@@ -6,7 +6,7 @@ from scipy.sparse.csgraph import connected_components
 from yamlu.img import Annotation
 
 
-def transcribe_words(word_anns: List[Annotation], word_idxs: np.array, line_thresh: float, line_delim="\n",
+def transcribe_words(word_anns: List[Annotation], word_idxs: Union[np.array, List], line_thresh: float, line_delim="\n",
                      direction: str = "lr") -> str:
     """
     Transcribe a text block given words and their bounding boxes
@@ -23,8 +23,8 @@ def transcribe_words(word_anns: List[Annotation], word_idxs: np.array, line_thre
 
     """
     assert direction in {"lr", "rl", "tb", "bt"}, f"Invalid direction: {direction}"
-
     xc, yc = np.array([word_anns[i].bb.center for i in word_idxs]).T
+    word_idxs = np.asanyarray(word_idxs)
 
     line_split_axis = yc if direction in ["lr", "rl"] else xc
     word_split_axis = xc if direction in ["lr", "rl"] else yc

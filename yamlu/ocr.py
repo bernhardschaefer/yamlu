@@ -5,6 +5,10 @@ from scipy.sparse.csgraph import connected_components
 
 from yamlu.img import Annotation
 
+# reading directions for how to combine words into a textblock:
+# left-to-right (lr), right-to-left (rl), top-to-bottom (tb), bottom-to-top (bt)
+DIRECTIONS = ["lr", "rl", "tb", "bt"]
+
 
 def transcribe_words(word_anns: List[Annotation], word_idxs: Union[np.array, List], line_thresh: float, line_delim="\n",
                      direction: str = "lr") -> str:
@@ -22,7 +26,7 @@ def transcribe_words(word_anns: List[Annotation], word_idxs: Union[np.array, Lis
         the transcribed text block as string
 
     """
-    assert direction in {"lr", "rl", "tb", "bt"}, f"Invalid direction: {direction}"
+    assert direction in DIRECTIONS, f"Invalid direction: {direction}"
     xc, yc = np.array([word_anns[i].bb.center for i in word_idxs]).T
     word_idxs = np.asanyarray(word_idxs)
 

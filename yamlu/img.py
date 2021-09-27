@@ -581,7 +581,8 @@ def plot_img(img: Union[np.ndarray, Image.Image], figsize=DEFAULT_FIGSIZE, save_
 
     ax = fig.add_axes([0, 0, 1, 1])
     ax.axis("off")
-    ax.imshow(np.asarray(img), **imshow_kwargs)
+    # hard-coded cmap gray: seems to have no effect for RGB images but is required for grayscale images
+    ax.imshow(np.asarray(img), cmap="gray", **imshow_kwargs)
 
     if save_path:
         plt.savefig(save_path)

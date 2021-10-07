@@ -387,7 +387,7 @@ class AnnotatedImage:
         return self.width, self.height
 
     @property
-    def fname_without_suffix(self) -> str:
+    def img_id(self) -> str:
         return Path(self.filename).stem
 
     @property

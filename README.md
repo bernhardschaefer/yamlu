@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.com/bernhardschaefer/yamlu.svg?branch=master)](https://travis-ci.com/bernhardschaefer/yamlu)
+![run_tests workflow](https://github.com//bernhardschaefer/yamlu/actions/workflows/run_tests.yaml/badge.svg)
 
 ## yamlu - yet another machine learning utility library
 

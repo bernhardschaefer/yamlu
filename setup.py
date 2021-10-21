@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="yamlu",
-    version="0.0.5",
+    version="0.0.6",
     description="yet another machine learning utility library",
     url="https://github.com/bernhardschaefer/yamlu",
     author="Bernhard Schäfer",

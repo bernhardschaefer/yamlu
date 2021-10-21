@@ -356,7 +356,7 @@ class AnnotatedImage:
     def save_with_anns(self, directory: Path, figsize=None, suffix="_bb", jpg_quality=75, **plot_anns_kwargs):
         self.plot(figsize=figsize, **plot_anns_kwargs)
         directory.mkdir(exist_ok=True, parents=True)
-        img_path = directory / f"{self.fname_without_suffix}{suffix}.jpg"
+        img_path = directory / f"{self.img_id}{suffix}.jpg"
         plt.savefig(str(img_path), pil_kwargs={"quality": jpg_quality})
         plt.close()
         return img_path

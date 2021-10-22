@@ -4,6 +4,13 @@ import functools
 import numpy as np
 
 
+def _check_bb_shape(bb_tlbr: np.ndarray):
+    if len(bb_tlbr) == 0:
+        bb_tlbr = np.reshape(bb_tlbr, (0, 4))
+    assert bb_tlbr.shape[1] == 4, bb_tlbr.shape
+    return bb_tlbr
+
+
 def _get_pairwise_inter_area(bb_tlbr1: np.ndarray, bb_tlbr2: np.ndarray):
     """Pairwise vectorized bounding box intersection area computation for two arrays with t,l,b,r convention
     Args:
@@ -12,8 +19,8 @@ def _get_pairwise_inter_area(bb_tlbr1: np.ndarray, bb_tlbr2: np.ndarray):
     Returns:
         intersection areas with shape (m,n), bb1 areas (m,), bb2 areas (n,)
     """
-    assert bb_tlbr1.shape[1] == 4
-    assert bb_tlbr2.shape[1] == 4
+    bb_tlbr1 = _check_bb_shape(bb_tlbr1)
+    bb_tlbr2 = _check_bb_shape(bb_tlbr2)
     t1, l1, b1, r1 = np.split(bb_tlbr1, 4, axis=1)
     t2, l2, b2, r2 = np.split(bb_tlbr2, 4, axis=1)
 

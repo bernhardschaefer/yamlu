@@ -13,12 +13,9 @@
 yamlu
 =====
 
-
     yet another machine learning utility library
 
-
 A longer description of your project goes here...
-
 
 .. _pyscaffold-notes:
 

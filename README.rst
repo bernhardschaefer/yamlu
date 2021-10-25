@@ -10,13 +10,11 @@
 
 |
 
-=====
-yamlu - yet another machine learning utility library
-
+yamlu
 =====
 
 
-    Add a short description here!
+    yet another machine learning utility library
 
 
 A longer description of your project goes here...

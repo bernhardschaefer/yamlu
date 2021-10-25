@@ -1,5 +1,5 @@
 .. image:: https://github.com/<USER>/yamlu/actions/workflows/run_tests.yaml/badge.svg
-    :alt: Built status 
+    :alt: Built status
     :target: https://github.com/<USER>/yamlu/actions/workflows/run_tests.yaml
 .. image:: https://img.shields.io/coveralls/github/<USER>/yamlu/main.svg
     :alt: Coveralls

@@ -1,9 +1,6 @@
-.. image:: https://github.com/<USER>/yamlu/actions/workflows/run_tests.yaml/badge.svg
+.. image:: https://github.com/bernhardschaefer/yamlu/actions/workflows/run_tests.yaml/badge.svg
     :alt: Built status
-    :target: https://github.com/<USER>/yamlu/actions/workflows/run_tests.yaml
-.. image:: https://img.shields.io/coveralls/github/<USER>/yamlu/main.svg
-    :alt: Coveralls
-    :target: https://coveralls.io/r/<USER>/yamlu
+    :target: https://github.com/bernhardschaefer/yamlu/actions/workflows/run_tests.yaml
 .. image:: https://img.shields.io/pypi/v/yamlu.svg
     :alt: PyPI-Server
     :target: https://pypi.org/project/yamlu/

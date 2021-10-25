@@ -19,7 +19,7 @@ jobs:
           python -m pip install --upgrade pip setuptools
       - name: Install yamlu itself
         run: |
-          python setup.py install[all,testing]
+          python setup.py install .[all,testing]
       - name: Test with pytest
         run: |
           pytest tests/

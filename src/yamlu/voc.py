@@ -25,8 +25,8 @@ def dump_ai_voc(ai: AnnotatedImage, folder: Path, additional_fields: Tuple = ())
     for a in ai.annotations:
         obj = ET.SubElement(root, "object")
         ET.SubElement(obj, "name").text = a.category
-        ET.SubElement(obj, "difficult").text = str(0)
-        ET.SubElement(obj, "occluded").text = str(0)
+        # ET.SubElement(obj, "difficult").text = str(0)
+        # ET.SubElement(obj, "occluded").text = str(0)
 
         for k in additional_fields:
             if k in a:

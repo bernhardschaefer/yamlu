@@ -261,13 +261,14 @@ class Annotation:
     def extra_fields(self):
         return {k: v for k, v in self._fields.items() if k not in ["category", "bb"]}
 
-    def plot(self, img: Image.Image, figsize=None, pad=30, **plot_ann_kwargs):
+    def plot(self, img: Image.Image, figsize=None, pad_perc=10, **plot_ann_kwargs):
         plot_img(img, figsize=figsize)
         plot_anns([self], **plot_ann_kwargs)
 
         bb = self.bb
-        plt.xlim(bb.l - pad, bb.r + pad)
-        plt.ylim(bb.b + pad, bb.t - pad)
+        pad_x, pad_y = round(bb.w * pad_perc / 100.), round(bb.h * pad_perc / 100.)
+        plt.xlim(bb.l - pad_x, bb.r + pad_x)
+        plt.ylim(bb.b + pad_y, bb.t - pad_y)
 
     def img_cropped(self, img: Union[Image.Image, np.ndarray], pad=0, return_bb=False):
         img = np.asarray(img)

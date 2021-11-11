@@ -556,7 +556,11 @@ def draw_arrow_connections(ann: Annotation, ax, lw_conn=4, color=(220 / 255., 20
 
     path = mpath.Path(vertices, codes)
 
-    arw_style = mpatches.ArrowStyle.CurveFilledB(head_width=head_width, head_length=head_length)
+    if ann.extra_fields.get("directed", True):
+        arw_style = mpatches.ArrowStyle.CurveFilledB(head_width=head_width, head_length=head_length)
+    else:
+        arw_style = mpatches.ArrowStyle.Curve()
+
     # noinspection PyTypeChecker
     p = mpatches.FancyArrowPatch(
         path=path,

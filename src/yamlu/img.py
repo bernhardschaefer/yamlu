@@ -17,6 +17,8 @@ import numpy as np
 from PIL import Image
 from matplotlib import patheffects
 
+from yamlu.img_ops import crop_img
+
 _logger = logging.getLogger(__name__)
 
 DEFAULT_FIGSIZE = (12, 12)
@@ -263,25 +265,18 @@ class Annotation:
 
     def plot(self, img: Image.Image, figsize=None, pad_perc=10, **plot_ann_kwargs):
         plot_img(img, figsize=figsize)
+        if "alpha_bb" not in plot_ann_kwargs:
+            plot_ann_kwargs["alpha_bb"] = 0.0
         plot_anns([self], **plot_ann_kwargs)
 
         bb = self.bb
         pad_x, pad_y = round(bb.w * pad_perc / 100.), round(bb.h * pad_perc / 100.)
         plt.xlim(bb.l - pad_x, bb.r + pad_x)
+        # NOTE: ylim requires (b,t) instead of (t,b), otherwise it flips the image
         plt.ylim(bb.b + pad_y, bb.t - pad_y)
 
-    def img_cropped(self, img: Union[Image.Image, np.ndarray], pad=0, return_bb=False):
-        img = np.asarray(img)
-        t, l, b, r = self.bb.tlbr
-        t, l = [max(math.floor(x) - pad, 0) for x in [t, l]]
-
-        img_h, img_w = img.shape[:2]
-        b, r = [min(math.ceil(x) + pad, m - 1) for x, m in zip([b, r], [img_h, img_w])]
-
-        img_crop = Image.fromarray(img[t:b, l:r, ...])
-        if return_bb:
-            return img_crop, BoundingBox(t, l, b, r)
-        return img_crop
+    def img_cropped(self, img: Union[Image.Image, np.ndarray], pad=0):
+        return crop_img(img, self.bb.ltrb, pad)
 
     def __setattr__(self, name: str, val: Any) -> None:
         if name.startswith("_"):

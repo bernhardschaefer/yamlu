@@ -1,8 +1,39 @@
+import math
 from typing import Union, Tuple
 
 import numpy as np
 from PIL import Image
 from matplotlib import colors
+
+
+def crop_img(img: Image.Image, ltrb, pad: int = 0):
+    # noinspection PyTypeChecker
+    img_cropped = crop_img_np(np.asarray(img), ltrb, pad)
+    # TODO use Image.crop() to prevent converting two times
+    return Image.fromarray(img_cropped)
+
+
+def crop_img_np(img: np.ndarray, ltrb, pad: int = 0) -> np.ndarray:
+    """
+    Crops the image using the specified ltrb float bounding box while ensuring the bounding box is clipped to the image
+    Args:
+        img: image
+        ltrb: bounding box in ltrb format
+        pad: pixels to pad the bounding box
+
+    Returns:
+
+    """
+    l, t, r, b = ltrb
+
+    # floor to int and clip to image
+    t, l = [max(math.floor(x - pad), 0) for x in [t, l]]
+
+    # ceil to int and clip to image
+    img_h, img_w = img.shape[:2]
+    b, r = [min(math.ceil(x + pad), m - 1) for x, m in zip([b, r], [img_h, img_w])]
+
+    return img[t:b, l:r, ...]
 
 
 def grayscale_transparency(img: Image.Image) -> Image.Image:

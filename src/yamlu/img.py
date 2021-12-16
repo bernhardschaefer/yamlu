@@ -397,23 +397,31 @@ class AnnotatedImage:
         return s
 
 
+def get_scalar_map(n_categories, cmap: str):
+    """
+    Args:
+        n_categories: number of categories to compute a linear scalar map for
+        cmap: matplotlib cmap (other options include Dark2, Accent)
+    """
+    cm = plt.get_cmap(cmap)
+    norm = colors.Normalize(vmin=0, vmax=n_categories - 1)
+    return cmx.ScalarMappable(norm=norm, cmap=cm)
+
+
 def compute_colors(annotations: List[Annotation], categories: List[str], cmap='jet') -> List[np.ndarray]:
     """
-    :param annotations: list of annotations
-    :param categories: dataset categories
-    :param cmap: matplotlib cmap (other options include Dark2, Accent)
-    :return: a list with an rgba array for each annotation
+    Args:
+        annotations: list of annotations
+        categories: dataset categories
+        cmap: matplotlib cmap (other options include Dark2, Accent)
+    Returns:
+        a list with an RGBA array for each annotation
     """
     dataset_cat_to_id = {c: i for i, c in enumerate(categories)}
-
     cat_ids = np.array([dataset_cat_to_id[ann.category] for ann in annotations])
 
-    cm = plt.get_cmap(cmap)
-    cNorm = colors.Normalize(vmin=0, vmax=len(categories) - 1)
-    scalarMap = cmx.ScalarMappable(norm=cNorm, cmap=cm)
-    scalarMap.get_clim()
-
-    return [scalarMap.to_rgba(c) for c in cat_ids]
+    scalar_map = get_scalar_map(len(categories), cmap)
+    return [scalar_map.to_rgba(c) for c in cat_ids]
 
 
 def plot_anns(annotations: List[Annotation], categories: List[str] = None, ann_colors=None, ax=None, with_index=False,
@@ -431,6 +439,7 @@ def plot_anns(annotations: List[Annotation], categories: List[str] = None, ann_c
     :param digits: score digits
     :param min_score: score threshold for plotting the annotation
     :param draw_connections: draw arrow connections
+    :param draw_keypoints: draw arrow keypoints
     :param alpha_bb: alpha for the bounding box fill (not the border)
     :param alpha_txt: alpha for the text
     :param alpha_kp: alpha for scattered keypoints

@@ -456,6 +456,7 @@ def plot_anns(annotations: List[Annotation], categories: List[str] = None, ann_c
         ann_colors = [ann_colors] * len(annotations)
 
     annotations = [a for a in annotations if "score" not in a or a.score >= min_score]
+    assert len(annotations) == len(ann_colors), f"{len(annotations)} != {len(ann_colors)}"
 
     # rough estimates so that text + kp sizes scale with figure size
     figsize = ax.figure.get_size_inches()

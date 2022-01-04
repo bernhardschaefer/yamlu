@@ -454,6 +454,8 @@ def plot_anns(annotations: List[Annotation], categories: List[str] = None, ann_c
         _logger.warning("plot_anns: passed empty annotations list")
         return
 
+    annotations = [a for a in annotations if "score" not in a or a.score >= min_score]
+
     if ax is None:
         ax = plt.gca()
     if categories is None:
@@ -464,7 +466,6 @@ def plot_anns(annotations: List[Annotation], categories: List[str] = None, ann_c
         # assume only a single color has been passed
         ann_colors = [ann_colors] * len(annotations)
 
-    annotations = [a for a in annotations if "score" not in a or a.score >= min_score]
     assert len(annotations) == len(ann_colors), f"{len(annotations)} != {len(ann_colors)}"
 
     # rough estimates so that text + kp sizes scale with figure size

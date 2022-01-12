@@ -114,7 +114,7 @@ def bbs_distances(bboxes1: np.ndarray, bboxes2: np.ndarray):
 
     inner_width = np.maximum(0, bb_outer_widths - bbs1_widths - bbs2_widths.T)
     inner_height = np.maximum(0, bb_outer_heights - bbs1_heights - bbs2_heights.T)
-    min_distance = np.sqrt(inner_width ** 2 + inner_height ** 2)
+    min_distance = np.hypot(inner_width, inner_height)
     return min_distance
 
 
@@ -139,7 +139,7 @@ def pts_boxes_distance(pts, boxes_ltrb, zero_dist_pt_within_box: bool = True):
     import torch
     dx = torch.clamp(torch.max(xmin_d, xmax_d), 0)
     dy = torch.clamp(torch.max(ymin_d, ymax_d), 0)
-    ds = torch.sqrt(dx ** 2 + dy ** 2)
+    ds = torch.hypot(dx, dy)
 
     pts_in_box_mask = (ds == 0)
     if not zero_dist_pt_within_box and pts_in_box_mask.any():

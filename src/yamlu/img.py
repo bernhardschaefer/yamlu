@@ -131,7 +131,7 @@ class BoundingBox:
 
     @property
     def diameter(self):
-        return math.sqrt(self.w ** 2 + self.h ** 2)
+        return math.hypot(self.w, self.h)
 
     @property
     def aspect_ratio(self):

@@ -55,6 +55,9 @@ def pairwise_segment_distance(xyxy1: torch.Tensor, xyxy2: torch.Tensor):
     # that also handles distances between segments that are on the same line
     assert xyxy1.ndim == xyxy2.ndim == 2
     assert xyxy1.shape[1] == xyxy2.shape[1] == 4
+    M, N = len(xyxy1), len(xyxy2)
+    if M == 0 or N == 0:
+        return xyxy1.new_zeros((M, N), dtype=torch.float32)
 
     # try each of the 4 vertices w/the other segment
     dist_matrices = torch.stack([
@@ -67,6 +70,7 @@ def pairwise_segment_distance(xyxy1: torch.Tensor, xyxy2: torch.Tensor):
 
     intersect_matrix = pairwise_segment_intersect(xyxy1, xyxy2)
     dist_matrix[intersect_matrix] = 0.0
+    assert dist_matrix.shape == (M, N)
     return dist_matrix
 
 

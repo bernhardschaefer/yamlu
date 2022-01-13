@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 
 
 def line_segment_lengths(points: np.ndarray) -> np.ndarray:
@@ -12,6 +13,36 @@ def line_segment_lengths(points: np.ndarray) -> np.ndarray:
     assert points.ndim == 2 and points.shape[1] == 2, f"{points.shape}"
     # the trick here is np.diff, which computes difference between points i and i-1
     return np.sqrt(np.sum(np.diff(points, axis=0) ** 2, axis=1))
+
+
+def pairwise_segments_intersect(xyxy1: torch.Tensor, xyxy2: torch.Tensor):
+    """
+    Computes a bool matrix where A(i,j) tracks if line segments xyxy1[i] and xyxy2[j] intersect.
+    Returns False for parallel line segments, even if they are on the same line.
+    Args:
+        xyxy1: line segments x11, y11, x12, y12, i.e. x11y11 -> x12y12
+        xyxy2: line segments x21, y21, x22, y22, i.e. x21y21 -> x22y22
+    """
+    # pairwise vectorized version of https://stackoverflow.com/a/2824596
+    assert xyxy1.ndim == xyxy2.ndim == 2
+    assert xyxy1.shape[1] == xyxy2.shape[1] == 4
+
+    x11, y11, x12, y12 = [c.unsqueeze(1) for c in xyxy1.unbind(1)]
+    x21, y21, x22, y22 = [c.unsqueeze(0) for c in xyxy2.unbind(1)]
+
+    dx1 = x12 - x11
+    dy1 = y12 - y11
+    dx2 = x22 - x21
+    dy2 = y22 - y21
+    delta = (dy1 * dx2 - dx1 * dy2).to(torch.float)
+
+    # Note: for parallel segments delta == 0, which results in NaN's for s and t
+    # these are evaluated to False in the conditions below
+    s = (dx1 * (y21 - y11) + dy1 * (x11 - x21)) / delta
+    t = (dx2 * (y11 - y21) + dy2 * (x21 - x11)) / -delta
+    intersect_matrix = (s >= 0) & (s <= 1) & (t >= 0) & (t <= 1)
+
+    return intersect_matrix
 
 
 def sample_equidistant_points(points: np.ndarray, k: int) -> np.ndarray:

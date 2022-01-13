@@ -139,7 +139,8 @@ def pts_boxes_distance(pts, boxes_ltrb, zero_dist_pt_within_box: bool = True):
     import torch
     dx = torch.clamp(torch.max(xmin_d, xmax_d), 0)
     dy = torch.clamp(torch.max(ymin_d, ymax_d), 0)
-    ds = torch.hypot(dx, dy)
+    # torch.hypot only implemented in torch >= 1.7
+    ds = torch.hypot(dx, dy) if hasattr(torch, "hypot") else torch.sqrt(dx ** 2 + dy ** 2)
 
     pts_in_box_mask = (ds == 0)
     if not zero_dist_pt_within_box and pts_in_box_mask.any():

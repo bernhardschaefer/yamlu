@@ -15,7 +15,7 @@ def line_segment_lengths(points: np.ndarray) -> np.ndarray:
     return np.sqrt(np.sum(np.diff(points, axis=0) ** 2, axis=1))
 
 
-def pairwise_segments_intersect(xyxy1: torch.Tensor, xyxy2: torch.Tensor):
+def pairwise_segment_intersect(xyxy1: torch.Tensor, xyxy2: torch.Tensor) -> torch.Tensor:
     """
     Computes a bool matrix where A(i,j) tracks if line segments xyxy1[i] and xyxy2[j] intersect.
     Returns False for parallel line segments, even if they are on the same line.
@@ -26,7 +26,6 @@ def pairwise_segments_intersect(xyxy1: torch.Tensor, xyxy2: torch.Tensor):
     # pairwise vectorized version of https://stackoverflow.com/a/2824596
     assert xyxy1.ndim == xyxy2.ndim == 2
     assert xyxy1.shape[1] == xyxy2.shape[1] == 4
-
     x11, y11, x12, y12 = [c.unsqueeze(1) for c in xyxy1.unbind(1)]
     x21, y21, x22, y22 = [c.unsqueeze(0) for c in xyxy2.unbind(1)]
 
@@ -43,6 +42,65 @@ def pairwise_segments_intersect(xyxy1: torch.Tensor, xyxy2: torch.Tensor):
     intersect_matrix = (s >= 0) & (s <= 1) & (t >= 0) & (t <= 1)
 
     return intersect_matrix
+
+
+def pairwise_segment_distance(xyxy1: torch.Tensor, xyxy2: torch.Tensor):
+    """
+    Computes a bool matrix where A(i,j) is the distance between the segments xyxy1[i] and xyxy2[j].
+    Args:
+        xyxy1: line segments x11, y11, x12, y12, i.e. x11y11 -> x12y12
+        xyxy2: line segments x21, y21, x22, y22, i.e. x21y21 -> x22y22
+    """
+    # pairwise vectorized version of https://stackoverflow.com/a/2824596
+    # that also handles distances between segments that are on the same line
+
+    # try each of the 4 vertices w/the other segment
+    dist_matrices = torch.stack([
+        pairwise_point_segment_distance(xyxy1[:, [0, 1]], xyxy2),
+        pairwise_point_segment_distance(xyxy1[:, [2, 3]], xyxy2),
+        pairwise_point_segment_distance(xyxy2[:, [0, 1]], xyxy1),
+        pairwise_point_segment_distance(xyxy2[:, [2, 3]], xyxy1)
+    ])
+    dist_matrix, _ = torch.min(dist_matrices, dim=0)
+
+    intersect_matrix = pairwise_segment_intersect(xyxy1, xyxy2)
+    dist_matrix[intersect_matrix] = 0.0
+    return dist_matrix
+
+
+def pairwise_point_segment_distance(pts: torch.Tensor, xyxy: torch.Tensor) -> torch.Tensor:
+    px, py = [c.unsqueeze(1) for c in pts.unbind(1)]
+    x1, y1, x2, y2 = [c.unsqueeze(0) for c in xyxy.unbind(1)]
+
+    dx = x2 - x1
+    dy = y2 - y1
+    segment_is_point_mask = (dx == 0) & (dy == 0)
+
+    # Calculate the t that minimizes the distance.
+    t = ((px - x1) * dx + (py - y1) * dy) / (dx * dx + dy * dy)
+
+    # See if this represents one of the segment's
+    # end points or a point in the middle.
+    dx = xyxy.new_zeros((pts.shape[0], xyxy.shape[0]), dtype=torch.float32)
+    dy = dx.clone()
+
+    # mask: t < 0 or segment is a point (i.e. t == NaN)
+    mask = (t < 0) | segment_is_point_mask
+    dx[mask] = (px - x1)[mask]
+    dy[mask] = (py - y1)[mask]
+
+    mask = t > 1
+    dx[mask] = (px - x2)[mask]
+    dy[mask] = (py - y2)[mask]
+
+    mask = (t >= 0) & (t <= 1)
+    near_x = x1 + t * dx
+    near_y = y1 + t * dy
+    dx[mask] = (px - near_x)[mask]
+    dy[mask] = (py - near_y)[mask]
+
+    # torch.hypot only implemented in torch >= 1.7
+    return torch.hypot(dx, dy) if hasattr(torch, "hypot") else torch.sqrt(dx ** 2 + dy ** 2)
 
 
 def sample_equidistant_points(points: np.ndarray, k: int) -> np.ndarray:

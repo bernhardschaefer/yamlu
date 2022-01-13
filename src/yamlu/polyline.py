@@ -53,13 +53,15 @@ def pairwise_segment_distance(xyxy1: torch.Tensor, xyxy2: torch.Tensor):
     """
     # pairwise vectorized version of https://stackoverflow.com/a/2824596
     # that also handles distances between segments that are on the same line
+    assert xyxy1.ndim == xyxy2.ndim == 2
+    assert xyxy1.shape[1] == xyxy2.shape[1] == 4
 
     # try each of the 4 vertices w/the other segment
     dist_matrices = torch.stack([
         pairwise_point_segment_distance(xyxy1[:, [0, 1]], xyxy2),
         pairwise_point_segment_distance(xyxy1[:, [2, 3]], xyxy2),
-        pairwise_point_segment_distance(xyxy2[:, [0, 1]], xyxy1),
-        pairwise_point_segment_distance(xyxy2[:, [2, 3]], xyxy1)
+        pairwise_point_segment_distance(xyxy2[:, [0, 1]], xyxy1).T,
+        pairwise_point_segment_distance(xyxy2[:, [2, 3]], xyxy1).T,
     ])
     dist_matrix, _ = torch.min(dist_matrices, dim=0)
 
@@ -74,33 +76,33 @@ def pairwise_point_segment_distance(pts: torch.Tensor, xyxy: torch.Tensor) -> to
 
     dx = x2 - x1
     dy = y2 - y1
-    segment_is_point_mask = (dx == 0) & (dy == 0)
 
     # Calculate the t that minimizes the distance.
     t = ((px - x1) * dx + (py - y1) * dy) / (dx * dx + dy * dy)
 
     # See if this represents one of the segment's
     # end points or a point in the middle.
-    dx = xyxy.new_zeros((pts.shape[0], xyxy.shape[0]), dtype=torch.float32)
-    dy = dx.clone()
+    dx_res = xyxy.new_zeros((pts.shape[0], xyxy.shape[0]), dtype=torch.float32)
+    dy_res = dx_res.clone()
 
     # mask: t < 0 or segment is a point (i.e. t == NaN)
+    segment_is_point_mask = (dx == 0) & (dy == 0)
     mask = (t < 0) | segment_is_point_mask
-    dx[mask] = (px - x1)[mask]
-    dy[mask] = (py - y1)[mask]
+    dx_res[mask] = (px - x1)[mask]
+    dy_res[mask] = (py - y1)[mask]
 
     mask = t > 1
-    dx[mask] = (px - x2)[mask]
-    dy[mask] = (py - y2)[mask]
+    dx_res[mask] = (px - x2)[mask]
+    dy_res[mask] = (py - y2)[mask]
 
     mask = (t >= 0) & (t <= 1)
     near_x = x1 + t * dx
     near_y = y1 + t * dy
-    dx[mask] = (px - near_x)[mask]
-    dy[mask] = (py - near_y)[mask]
+    dx_res[mask] = (px - near_x)[mask]
+    dy_res[mask] = (py - near_y)[mask]
 
     # torch.hypot only implemented in torch >= 1.7
-    return torch.hypot(dx, dy) if hasattr(torch, "hypot") else torch.sqrt(dx ** 2 + dy ** 2)
+    return torch.hypot(dx_res, dy_res) if hasattr(torch, "hypot") else torch.sqrt(dx_res ** 2 + dy_res ** 2)
 
 
 def sample_equidistant_points(points: np.ndarray, k: int) -> np.ndarray:

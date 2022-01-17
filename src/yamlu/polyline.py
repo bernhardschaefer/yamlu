@@ -75,6 +75,13 @@ def pairwise_segment_distance(xyxy1: torch.Tensor, xyxy2: torch.Tensor):
 
 
 def pairwise_point_segment_distance(pts: torch.Tensor, xyxy: torch.Tensor) -> torch.Tensor:
+    """
+    Args:
+        pts: x,y points of shape Mx2
+        xyxy: line segments x11, y11, x12, y12, i.e. x11y11 -> x12y12 in shape Nx4
+
+    Returns: segment distances MxN
+    """
     px, py = [c.unsqueeze(1) for c in pts.unbind(1)]
     x1, y1, x2, y2 = [c.unsqueeze(0) for c in xyxy.unbind(1)]
 

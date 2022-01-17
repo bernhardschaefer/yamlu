@@ -144,7 +144,7 @@ def pts_boxes_distance(pts, boxes_ltrb, zero_dist_pt_within_box: bool = True):
 
     pts_in_box_mask = (ds == 0)
     if not zero_dist_pt_within_box and pts_in_box_mask.any():
-        d_min = functools.reduce(torch.min, [xmin_d.abs(), xmax_d.abs(), ymin_d.abs(), ymax_d.abs()])
+        d_min, _ = torch.stack([xmin_d, xmax_d, ymin_d, ymax_d]).abs().min(dim=0)
         ds[pts_in_box_mask] = d_min[pts_in_box_mask]
 
     return ds

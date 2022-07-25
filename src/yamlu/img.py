@@ -304,9 +304,11 @@ class Annotation:
         return key in self._fields
 
     def __repr__(self):
-        # only get fields that are not of type Annotation to prevent potentially infinite recursion
-        fields_str = ", ".join(f"{k}={v}" for k, v in self.extra_fields.items() if not isinstance(v, Annotation))
-        return f"{self.__class__.__name__}(category='{self.category}', bb={self.bb}, {fields_str})"
+        # use Annotation(...) to prevent potentially infinite recursion
+        cls_name = self.__class__.__name__
+        fields = (f"{k}={v if not isinstance(v, Annotation) else cls_name + '(...)'}" for k, v in
+                  self.extra_fields.items())
+        return f"{cls_name}(category='{self.category}', bb={self.bb}, {', '.join(fields)})"
 
 
 @dataclass

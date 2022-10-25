@@ -88,7 +88,7 @@ class CocoDatasetExport:
 
         self.n_jobs = n_jobs
         if n_jobs is None:
-            self.n_jobs = min([loky.backend.context.cpu_count() - 2, 16, max(ds.split_n_imgs.values())])
+            self.n_jobs = min([max(loky.backend.context.cpu_count() - 2, 1), 16, max(ds.split_n_imgs.values())])
         _logger.info("Initialized %s with %d jobs", self.__class__.__name__, self.n_jobs)
 
     def dump_dataset(self) -> Dict[str, List[AnnotatedImage]]:

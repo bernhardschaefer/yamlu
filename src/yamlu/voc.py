@@ -15,7 +15,7 @@ def dump_ai_voc(ai: AnnotatedImage, folder: Path, additional_fields: Tuple = ())
     root = ET.Element("annotation")
     ET.SubElement(root, "folder").text = folder.name
     ET.SubElement(root, "filename").text = ai.filename
-    ET.SubElement(root, "path").text = str(folder / ai.filename)
+    # ET.SubElement(root, "path").text = str(folder / ai.filename)
 
     size = ET.SubElement(root, "size")
     ET.SubElement(size, "width").text = str(ai.width)
